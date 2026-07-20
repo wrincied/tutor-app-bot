@@ -72,19 +72,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Последние занятия:",
         "payment_title": "Оплата",
         "payment_package": (
-            "Оплачено (пополнено): {topped} занятий\n"
+            "Оплачено (пополнено): {topped} {balance_unit}\n"
             "Проведено: {completed} занятий\n"
-            "Осталось: {balance} занятий\n"
+            "Осталось: {balance} {balance_unit}\n"
             "Ставка: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Проведено: {completed} занятий\n"
-            "К оплате (долг): {unpaid} занятий\n"
-            "Лимит долга: {credit} занятий\n"
+            "К оплате (долг): {unpaid} {balance_unit}\n"
+            "Лимит долга: {credit} {balance_unit}\n"
             "Ставка: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/час",
         "rate_unit_lesson": "/занятие",
+        "balance_unit_hour": "ч",
+        "balance_unit_lesson": "занятий",
         "profile_title": "Профиль",
         "profile_lang": "Язык: {flag} {label}",
         "pick_lang": "Выбери язык интерфейса:",
@@ -111,19 +113,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Recent lessons:",
         "payment_title": "Payments",
         "payment_package": (
-            "Topped up: {topped} lessons\n"
+            "Topped up: {topped} {balance_unit}\n"
             "Completed: {completed} lessons\n"
-            "Remaining: {balance} lessons\n"
+            "Remaining: {balance} {balance_unit}\n"
             "Rate: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Completed: {completed} lessons\n"
-            "Due: {unpaid} lessons\n"
-            "Debt limit: {credit} lessons\n"
+            "Due: {unpaid} {balance_unit}\n"
+            "Debt limit: {credit} {balance_unit}\n"
             "Rate: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/hour",
         "rate_unit_lesson": "/lesson",
+        "balance_unit_hour": "h",
+        "balance_unit_lesson": "lessons",
         "profile_title": "Profile",
         "profile_lang": "Language: {flag} {label}",
         "pick_lang": "Choose interface language:",
@@ -150,19 +154,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Letzte Stunden:",
         "payment_title": "Zahlung",
         "payment_package": (
-            "Aufgeladen: {topped} Stunden\n"
+            "Aufgeladen: {topped} {balance_unit}\n"
             "Durchgeführt: {completed} Stunden\n"
-            "Übrig: {balance} Stunden\n"
+            "Übrig: {balance} {balance_unit}\n"
             "Satz: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Durchgeführt: {completed} Stunden\n"
-            "Offen: {unpaid} Stunden\n"
-            "Limit: {credit} Stunden\n"
+            "Offen: {unpaid} {balance_unit}\n"
+            "Limit: {credit} {balance_unit}\n"
             "Satz: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/Std.",
         "rate_unit_lesson": "/Unterricht",
+        "balance_unit_hour": "Std.",
+        "balance_unit_lesson": "Unterricht",
         "profile_title": "Profil",
         "profile_lang": "Sprache: {flag} {label}",
         "pick_lang": "Sprache wählen:",
@@ -189,19 +195,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Соңғы сабақтар:",
         "payment_title": "Төлем",
         "payment_package": (
-            "Толтырылған: {topped} сабақ\n"
+            "Толтырылған: {topped} {balance_unit}\n"
             "Өткізілген: {completed} сабақ\n"
-            "Қалды: {balance} сабақ\n"
+            "Қалды: {balance} {balance_unit}\n"
             "Баға: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Өткізілген: {completed} сабақ\n"
-            "Қарыз: {unpaid} сабақ\n"
-            "Шек: {credit} сабақ\n"
+            "Қарыз: {unpaid} {balance_unit}\n"
+            "Шек: {credit} {balance_unit}\n"
             "Баға: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/сағат",
         "rate_unit_lesson": "/сабақ",
+        "balance_unit_hour": "сағ",
+        "balance_unit_lesson": "сабақ",
         "profile_title": "Профиль",
         "profile_lang": "Тіл: {flag} {label}",
         "pick_lang": "Тілді таңдаңыз:",
@@ -228,19 +236,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Останні заняття:",
         "payment_title": "Оплата",
         "payment_package": (
-            "Поповнено: {topped} занять\n"
+            "Поповнено: {topped} {balance_unit}\n"
             "Проведено: {completed} занять\n"
-            "Залишилось: {balance} занять\n"
+            "Залишилось: {balance} {balance_unit}\n"
             "Ставка: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Проведено: {completed} занять\n"
-            "Борг: {unpaid} занять\n"
-            "Ліміт: {credit} занять\n"
+            "Борг: {unpaid} {balance_unit}\n"
+            "Ліміт: {credit} {balance_unit}\n"
             "Ставка: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/год",
         "rate_unit_lesson": "/заняття",
+        "balance_unit_hour": "год",
+        "balance_unit_lesson": "занять",
         "profile_title": "Профіль",
         "profile_lang": "Мова: {flag} {label}",
         "pick_lang": "Обери мову:",
@@ -267,19 +277,21 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lessons_title": "Апошнія заняткі:",
         "payment_title": "Аплата",
         "payment_package": (
-            "Папоўнена: {topped} заняткаў\n"
+            "Папоўнена: {topped} {balance_unit}\n"
             "Праведзена: {completed} заняткаў\n"
-            "Засталося: {balance} заняткаў\n"
+            "Засталося: {balance} {balance_unit}\n"
             "Стаўка: {rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
             "Праведзена: {completed} заняткаў\n"
-            "Доўг: {unpaid} заняткаў\n"
-            "Ліміт: {credit} заняткаў\n"
+            "Доўг: {unpaid} {balance_unit}\n"
+            "Ліміт: {credit} {balance_unit}\n"
             "Стаўка: {rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/гадзіну",
         "rate_unit_lesson": "/занятак",
+        "balance_unit_hour": "гадз",
+        "balance_unit_lesson": "заняткаў",
         "profile_title": "Профіль",
         "profile_lang": "Мова: {flag} {label}",
         "pick_lang": "Абяры мову:",

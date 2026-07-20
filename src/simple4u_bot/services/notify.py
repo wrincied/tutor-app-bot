@@ -39,15 +39,17 @@ class NotifyService:
     async def balance(
         self,
         student_id: str,
-        lessons_left: int,
+        lessons_left: float | int,
         *,
         tutor_name: str | None = None,
+        rate_unit: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
             messages.balance(
                 lessons_left=lessons_left,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                rate_unit=rate_unit,
             ),
         )
 
@@ -56,8 +58,9 @@ class NotifyService:
         student_id: str,
         *,
         amount_label: str,
-        lessons_added: int,
+        lessons_added: float | int,
         tutor_name: str | None = None,
+        rate_unit: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -65,6 +68,7 @@ class NotifyService:
                 amount_label=amount_label,
                 lessons_added=lessons_added,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                rate_unit=rate_unit,
             ),
         )
 

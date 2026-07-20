@@ -226,6 +226,7 @@ async def menu_text(
             return
         billing = data.get("billing_type") or "package"
         key = "payment_postpaid" if billing == "postpaid" else "payment_package"
+        is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
         text = t(lang, key).format(
             topped=data.get("lessons_topped_up", 0),
             completed=data.get("lessons_completed", 0),
@@ -234,9 +235,9 @@ async def menu_text(
             credit=data.get("credit_limit", 0),
             rate=data.get("rate_per_hour", 0),
             currency=data.get("rate_currency", "EUR"),
-            rate_unit=t(
-                lang,
-                "rate_unit_lesson" if data.get("rate_unit") == "lesson" else "rate_unit_hour",
+            rate_unit=t(lang, "rate_unit_lesson" if is_lesson_unit else "rate_unit_hour"),
+            balance_unit=t(
+                lang, "balance_unit_lesson" if is_lesson_unit else "balance_unit_hour"
             ),
         )
         await message.answer(

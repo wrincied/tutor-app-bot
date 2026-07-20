@@ -25,15 +25,17 @@ class BotActiveBody(BaseModel):
 
 class BalanceBody(BaseModel):
     student_id: str
-    lessons_left: int = Field(ge=0)
+    lessons_left: float = Field(ge=0)
     tutor_name: str | None = None
+    rate_unit: str | None = None
 
 
 class PaymentBody(BaseModel):
     student_id: str
     amount_label: str
-    lessons_added: int = Field(ge=0)
+    lessons_added: float = Field(ge=0)
     tutor_name: str | None = None
+    rate_unit: str | None = None
 
 
 class LessonStartBody(BaseModel):
@@ -109,6 +111,7 @@ def create_api(
             body.student_id,
             body.lessons_left,
             tutor_name=body.tutor_name,
+            rate_unit=body.rate_unit,
         )
 
     @app.post("/v1/notify/payment")
@@ -121,6 +124,7 @@ def create_api(
             amount_label=body.amount_label,
             lessons_added=body.lessons_added,
             tutor_name=body.tutor_name,
+            rate_unit=body.rate_unit,
         )
 
     @app.post("/v1/notify/lesson-start")

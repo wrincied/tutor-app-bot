@@ -8,14 +8,40 @@ def _tutor_line(tutor_name: str | None) -> str:
     return f"Репетитор: {name}\n" if name else ""
 
 
-def balance(*, lessons_left: int, tutor_name: str | None = None) -> str:
-    return f"{_tutor_line(tutor_name)}В пакете осталось {lessons_left} занятий."
+def _fmt_units(value: float | int) -> str:
+    n = float(value)
+    if n == int(n):
+        return str(int(n))
+    return f"{n:.2f}".rstrip("0").rstrip(".")
 
 
-def payment(*, amount_label: str, lessons_added: int, tutor_name: str | None = None) -> str:
+def _unit_word(rate_unit: str | None, *, plural: bool = True) -> str:
+    if (rate_unit or "").strip().lower() == "lesson":
+        return "занятий" if plural else "занятие"
+    return "ч"
+
+
+def balance(
+    *,
+    lessons_left: float | int,
+    tutor_name: str | None = None,
+    rate_unit: str | None = None,
+) -> str:
+    unit = _unit_word(rate_unit)
+    return f"{_tutor_line(tutor_name)}В пакете осталось {_fmt_units(lessons_left)} {unit}."
+
+
+def payment(
+    *,
+    amount_label: str,
+    lessons_added: float | int,
+    tutor_name: str | None = None,
+    rate_unit: str | None = None,
+) -> str:
+    unit = _unit_word(rate_unit)
     return (
         f"{_tutor_line(tutor_name)}"
-        f"Оплата получена: {amount_label} · +{lessons_added} занятий. Спасибо!"
+        f"Оплата получена: {amount_label} · +{_fmt_units(lessons_added)} {unit}. Спасибо!"
     )
 
 
