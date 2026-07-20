@@ -14,15 +14,23 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from simple4u_bot.api.app import create_api
 from simple4u_bot.config import get_settings
 from simple4u_bot.handlers.student import router as student_router
+from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.notify import NotifyService
 from simple4u_bot.services.store import BindingStore
 
 logger = logging.getLogger(__name__)
 
 
-class StoreMiddleware(BaseMiddleware):
-    def __init__(self, store: BindingStore) -> None:
+class InjectMiddleware(BaseMiddleware):
+    def __init__(
+        self,
+        store: BindingStore,
+        notify: NotifyService,
+        backend: BackendClient,
+    ) -> None:
         self.store = store
+        self.notify = notify
+        self.backend = backend
 
     async def __call__(
         self,
@@ -31,6 +39,8 @@ class StoreMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         data["store"] = self.store
+        data["notify"] = self.notify
+        data["backend"] = self.backend
         return await handler(event, data)
 
 
@@ -46,10 +56,11 @@ async def run() -> None:
         token=settings.telegram_bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
-    notify = NotifyService(bot, store)
+    notify = NotifyService(bot, store, settings)
+    backend = BackendClient(settings)
 
     dp = Dispatcher(storage=MemoryStorage())
-    dp.update.middleware(StoreMiddleware(store))
+    dp.update.middleware(InjectMiddleware(store, notify, backend))
     dp.include_router(student_router)
 
     api = create_api(settings=settings, store=store, notify=notify)
@@ -62,9 +73,10 @@ async def run() -> None:
     server = uvicorn.Server(config)
 
     logger.info(
-        "Starting Simple4U bot · HTTP :%s · DB %s",
+        "Starting Simple4U bot · HTTP :%s · DB %s · backend %s",
         settings.bot_http_port,
         settings.bot_db_path,
+        settings.backend_url,
     )
 
     await asyncio.gather(

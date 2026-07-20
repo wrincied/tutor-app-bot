@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import logging
+
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 
+from simple4u_bot.config import Settings
 from simple4u_bot.services import messages
 from simple4u_bot.services.store import BindingStore
 
+logger = logging.getLogger(__name__)
+
 
 class NotifyService:
-    def __init__(self, bot: Bot, store: BindingStore) -> None:
+    def __init__(self, bot: Bot, store: BindingStore, settings: Settings) -> None:
         self.bot = bot
         self.store = store
+        self.settings = settings
 
     async def _send(self, student_id: str, text: str) -> dict:
         binding = self.store.get_by_student(student_id)
@@ -24,8 +30,26 @@ class NotifyService:
             return {"ok": False, "error": "telegram_error", "detail": str(exc)}
         return {"ok": True, "chat_id": binding.chat_id}
 
-    async def balance(self, student_id: str, lessons_left: int) -> dict:
-        return await self._send(student_id, messages.balance(lessons_left=lessons_left))
+    def _tutor_of(self, student_id: str, tutor_name: str | None) -> str | None:
+        if tutor_name and tutor_name.strip():
+            return tutor_name.strip()
+        binding = self.store.get_by_student(student_id)
+        return (binding.tutor_name if binding else None) or None
+
+    async def balance(
+        self,
+        student_id: str,
+        lessons_left: int,
+        *,
+        tutor_name: str | None = None,
+    ) -> dict:
+        return await self._send(
+            student_id,
+            messages.balance(
+                lessons_left=lessons_left,
+                tutor_name=self._tutor_of(student_id, tutor_name),
+            ),
+        )
 
     async def payment(
         self,
@@ -33,10 +57,15 @@ class NotifyService:
         *,
         amount_label: str,
         lessons_added: int,
+        tutor_name: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
-            messages.payment(amount_label=amount_label, lessons_added=lessons_added),
+            messages.payment(
+                amount_label=amount_label,
+                lessons_added=lessons_added,
+                tutor_name=self._tutor_of(student_id, tutor_name),
+            ),
         )
 
     async def lesson_start(
@@ -45,20 +74,47 @@ class NotifyService:
         *,
         minutes_before: int,
         time_label: str,
+        meeting_link: str | None = None,
+        tutor_name: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
             messages.lesson_start(
                 minutes_before=minutes_before,
                 time_label=time_label,
+                meeting_link=meeting_link,
+                tutor_name=self._tutor_of(student_id, tutor_name),
             ),
         )
 
-    async def homework(self, student_id: str, *, text: str) -> dict:
-        return await self._send(student_id, messages.homework(text=text))
-
-    async def lesson_moved(self, student_id: str, *, new_time_label: str) -> dict:
+    async def homework(
+        self,
+        student_id: str,
+        *,
+        text: str,
+        tutor_name: str | None = None,
+    ) -> dict:
         return await self._send(
             student_id,
-            messages.lesson_moved(new_time_label=new_time_label),
+            messages.homework(
+                text=text,
+                tutor_name=self._tutor_of(student_id, tutor_name),
+            ),
+        )
+
+    async def lesson_moved(
+        self,
+        student_id: str,
+        *,
+        new_time_label: str,
+        meeting_link: str | None = None,
+        tutor_name: str | None = None,
+    ) -> dict:
+        return await self._send(
+            student_id,
+            messages.lesson_moved(
+                new_time_label=new_time_label,
+                meeting_link=meeting_link,
+                tutor_name=self._tutor_of(student_id, tutor_name),
+            ),
         )

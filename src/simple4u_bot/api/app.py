@@ -14,6 +14,7 @@ class RegisterLinkBody(BaseModel):
     student_id: str = Field(min_length=1)
     link_token: str = Field(min_length=8)
     student_name: str | None = None
+    tutor_name: str | None = None
     bot_active: bool = True
 
 
@@ -25,28 +26,35 @@ class BotActiveBody(BaseModel):
 class BalanceBody(BaseModel):
     student_id: str
     lessons_left: int = Field(ge=0)
+    tutor_name: str | None = None
 
 
 class PaymentBody(BaseModel):
     student_id: str
-    amount_label: str  # e.g. "€225"
+    amount_label: str
     lessons_added: int = Field(ge=0)
+    tutor_name: str | None = None
 
 
 class LessonStartBody(BaseModel):
     student_id: str
     minutes_before: int = Field(default=30, ge=1)
-    time_label: str  # e.g. "11:30"
+    time_label: str
+    meeting_link: str | None = None
+    tutor_name: str | None = None
 
 
 class HomeworkBody(BaseModel):
     student_id: str
     text: str = Field(min_length=1)
+    tutor_name: str | None = None
 
 
 class LessonMovedBody(BaseModel):
     student_id: str
     new_time_label: str
+    meeting_link: str | None = None
+    tutor_name: str | None = None
 
 
 def create_api(
@@ -76,6 +84,7 @@ def create_api(
             student_id=body.student_id,
             link_token=body.link_token,
             student_name=body.student_name,
+            tutor_name=body.tutor_name,
             bot_active=body.bot_active,
         )
         deep_link = f"https://t.me/{settings.bot_username}?start={body.link_token}"
@@ -96,7 +105,11 @@ def create_api(
         body: BalanceBody,
         _: Annotated[None, Depends(require_secret)] = None,
     ) -> dict:
-        return await notify.balance(body.student_id, body.lessons_left)
+        return await notify.balance(
+            body.student_id,
+            body.lessons_left,
+            tutor_name=body.tutor_name,
+        )
 
     @app.post("/v1/notify/payment")
     async def notify_payment(
@@ -107,6 +120,7 @@ def create_api(
             body.student_id,
             amount_label=body.amount_label,
             lessons_added=body.lessons_added,
+            tutor_name=body.tutor_name,
         )
 
     @app.post("/v1/notify/lesson-start")
@@ -118,6 +132,8 @@ def create_api(
             body.student_id,
             minutes_before=body.minutes_before,
             time_label=body.time_label,
+            meeting_link=body.meeting_link,
+            tutor_name=body.tutor_name,
         )
 
     @app.post("/v1/notify/homework")
@@ -125,7 +141,11 @@ def create_api(
         body: HomeworkBody,
         _: Annotated[None, Depends(require_secret)] = None,
     ) -> dict:
-        return await notify.homework(body.student_id, text=body.text)
+        return await notify.homework(
+            body.student_id,
+            text=body.text,
+            tutor_name=body.tutor_name,
+        )
 
     @app.post("/v1/notify/lesson-moved")
     async def notify_lesson_moved(
@@ -135,6 +155,27 @@ def create_api(
         return await notify.lesson_moved(
             body.student_id,
             new_time_label=body.new_time_label,
+            meeting_link=body.meeting_link,
+            tutor_name=body.tutor_name,
         )
+
+    @app.get("/v1/bindings/{student_id}")
+    async def get_binding(
+        student_id: str,
+        _: Annotated[None, Depends(require_secret)] = None,
+    ) -> dict:
+        binding = store.get_by_student(student_id)
+        if binding is None:
+            raise HTTPException(status_code=404, detail="not linked")
+        return {
+            "ok": True,
+            "student_id": binding.student_id,
+            "chat_id": binding.chat_id,
+            "telegram_user_id": binding.telegram_user_id,
+            "telegram_username": binding.telegram_username,
+            "telegram_display_name": binding.telegram_display_name,
+            "bot_active": binding.bot_active,
+            "tutor_name": binding.tutor_name,
+        }
 
     return app
