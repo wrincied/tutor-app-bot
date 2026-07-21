@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     bot_db_path: Path = Path("data/bot.sqlite3")
     # Express backend for telegram-linked callback
     backend_url: str = "http://127.0.0.1:3001"
+    public_site_url: str = "https://simple4u-64822.web.app"
 
 
 @lru_cache

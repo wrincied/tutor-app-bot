@@ -203,6 +203,33 @@ class BindingStore:
             conn.commit()
             return binding
 
+    def unlink_student(self, student_id: str) -> Binding | None:
+        """Tutor-side disconnect: clear Telegram fields, keep invite token."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM bindings WHERE student_id = ?",
+                (student_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            # May already be unlinked (chat_id NULL) — still clear profile fields.
+            binding = self._row_to_binding(row) if row["chat_id"] is not None else None
+            conn.execute(
+                """
+                UPDATE bindings
+                SET chat_id = NULL,
+                    telegram_user_id = NULL,
+                    telegram_username = NULL,
+                    telegram_display_name = NULL,
+                    bot_active = 0,
+                    updated_at = datetime('now')
+                WHERE student_id = ?
+                """,
+                (student_id,),
+            )
+            conn.commit()
+            return binding
+
     def set_bot_active(self, student_id: str, active: bool) -> bool:
         with self._connect() as conn:
             cur = conn.execute(

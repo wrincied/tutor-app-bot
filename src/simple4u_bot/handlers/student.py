@@ -7,11 +7,17 @@ from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import CallbackQuery, Message
 
 from simple4u_bot import keyboards
+from simple4u_bot.config import get_settings
+from simple4u_bot.services import messages
 from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_label, t
 from simple4u_bot.services.store import Binding, BindingStore
 
 router = Router(name="student")
+
+
+def _site_url() -> str:
+    return (get_settings().public_site_url or messages.DEFAULT_SITE_URL).rstrip("/")
 
 
 def _tutor_name(binding: Binding | None) -> str | None:
@@ -136,7 +142,11 @@ async def start_with_token(
         binding = store.get_by_chat(message.chat.id) or binding
     name = f", {binding.student_name}" if binding.student_name else ""
     await message.answer(
-        _with_tutor(lang, t(lang, "welcome").format(name=name), binding),
+        messages.branded(
+            "Simple4U",
+            _with_tutor(lang, t(lang, "welcome").format(name=name), binding),
+            site_url=_site_url(),
+        ),
         reply_markup=keyboards.main_menu(lang),
     )
 
@@ -155,11 +165,15 @@ async def start_plain(message: Message, store: BindingStore, backend: BackendCli
         lang = _lang_of(existing)
         name = f", {existing.student_name}" if existing.student_name else ""
         await message.answer(
-            _with_tutor(lang, t(lang, "welcome").format(name=name), existing),
+            messages.branded(
+                "Simple4U",
+                _with_tutor(lang, t(lang, "welcome").format(name=name), existing),
+                site_url=_site_url(),
+            ),
             reply_markup=keyboards.main_menu(lang),
         )
         return
-    await message.answer(t("ru", "need_link"))
+    await message.answer(messages.welcome_need_link(site_url=_site_url()))
 
 
 @router.message(Command("status"))
