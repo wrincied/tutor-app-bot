@@ -18,6 +18,10 @@ class NotifyService:
         self.store = store
         self.settings = settings
 
+    @property
+    def _site_url(self) -> str:
+        return (self.settings.public_site_url or messages.DEFAULT_SITE_URL).rstrip("/")
+
     async def _send(self, student_id: str, text: str) -> dict:
         binding = self.store.get_by_student(student_id)
         if binding is None:
@@ -50,6 +54,7 @@ class NotifyService:
                 lessons_left=lessons_left,
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
+                site_url=self._site_url,
             ),
         )
 
@@ -69,6 +74,7 @@ class NotifyService:
                 lessons_added=lessons_added,
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
+                site_url=self._site_url,
             ),
         )
 
@@ -88,6 +94,7 @@ class NotifyService:
                 time_label=time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                site_url=self._site_url,
             ),
         )
 
@@ -103,6 +110,7 @@ class NotifyService:
             messages.homework(
                 text=text,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                site_url=self._site_url,
             ),
         )
 
@@ -120,5 +128,6 @@ class NotifyService:
                 new_time_label=new_time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                site_url=self._site_url,
             ),
         )

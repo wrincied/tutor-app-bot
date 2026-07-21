@@ -59,6 +59,10 @@ class LessonMovedBody(BaseModel):
     tutor_name: str | None = None
 
 
+class UnlinkBody(BaseModel):
+    student_id: str = Field(min_length=1)
+
+
 def create_api(
     *,
     settings: Settings,
@@ -162,6 +166,14 @@ def create_api(
             meeting_link=body.meeting_link,
             tutor_name=body.tutor_name,
         )
+
+    @app.post("/v1/unlink")
+    async def unlink_student(
+        body: UnlinkBody,
+        _: Annotated[None, Depends(require_secret)] = None,
+    ) -> dict:
+        store.unlink_student(body.student_id)
+        return {"ok": True, "student_id": body.student_id}
 
     @app.get("/v1/bindings/{student_id}")
     async def get_binding(
