@@ -58,15 +58,38 @@ def _unit_word(rate_unit: str | None, *, plural: bool = True) -> str:
     return "ч"
 
 
+_BALANCE_REASON_LABELS = {
+    "no_show": "неявка на урок",
+    "bonus": "бонусное занятие",
+    "typo": "исправление",
+}
+
+
 def balance(
     *,
     lessons_left: float | int,
     tutor_name: str | None = None,
     rate_unit: str | None = None,
+    lessons_before: float | int | None = None,
+    reason: str | None = None,
     site_url: str | None = None,
 ) -> str:
     unit = _unit_word(rate_unit)
     tutor = _tutor_line(tutor_name)
+    before = lessons_before
+    if before is not None and float(before) != float(lessons_left):
+        reason_key = (reason or "").strip().lower()
+        reason_line = ""
+        if reason_key in _BALANCE_REASON_LABELS:
+            reason_line = f"Причина: {_esc(_BALANCE_REASON_LABELS[reason_key])}."
+        return branded(
+            "Баланс изменён",
+            f"{_fmt_units(before)} → {_fmt_units(lessons_left)} {unit}.",
+            f"Осталось {_fmt_units(lessons_left)} {unit}.",
+            reason_line,
+            tutor,
+            site_url=site_url,
+        )
     return branded(
         "Баланс пакета",
         f"В пакете осталось {_fmt_units(lessons_left)} {unit}.",

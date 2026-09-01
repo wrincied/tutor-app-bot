@@ -47,6 +47,8 @@ class NotifyService:
         *,
         tutor_name: str | None = None,
         rate_unit: str | None = None,
+        lessons_before: float | int | None = None,
+        reason: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -54,6 +56,8 @@ class NotifyService:
                 lessons_left=lessons_left,
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
+                lessons_before=lessons_before,
+                reason=reason,
                 site_url=self._site_url,
             ),
         )

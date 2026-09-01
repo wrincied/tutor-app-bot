@@ -71,6 +71,7 @@ POST /v1/bot-active
 
 ```json
 { "student_id": "stu_abc", "lessons_left": 2 }
+{ "student_id": "stu_abc", "lessons_left": 5, "lessons_before": 8, "reason": "bonus" }
 { "student_id": "stu_abc", "amount_label": "€225", "lessons_added": 5 }
 { "student_id": "stu_abc", "minutes_before": 30, "time_label": "11:30" }
 { "student_id": "stu_abc", "text": "упр. 4–6, стр. 18." }

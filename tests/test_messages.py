@@ -12,6 +12,21 @@ def test_balance_message() -> None:
     assert "1.5 ч" in messages.balance(lessons_left=1.5, rate_unit="hour")
 
 
+def test_balance_adjust_message() -> None:
+    text = messages.balance(
+        lessons_left=5,
+        lessons_before=8,
+        reason="bonus",
+        tutor_name="Анна",
+        rate_unit="lesson",
+    )
+    assert "Баланс изменён" in text
+    assert "8 → 5" in text
+    assert "Осталось 5" in text
+    assert "бонусное занятие" in text
+    assert "Репетитор: Анна" in text
+
+
 def test_payment_message() -> None:
     text = messages.payment(amount_label="€225", lessons_added=5, tutor_name="Анна", rate_unit="lesson")
     assert "Оплата получена" in text

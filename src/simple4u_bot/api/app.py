@@ -25,9 +25,11 @@ class BotActiveBody(BaseModel):
 
 class BalanceBody(BaseModel):
     student_id: str
-    lessons_left: float = Field(ge=0)
+    lessons_left: float
     tutor_name: str | None = None
     rate_unit: str | None = None
+    lessons_before: float | None = None
+    reason: str | None = None
 
 
 class PaymentBody(BaseModel):
@@ -116,6 +118,8 @@ def create_api(
             body.lessons_left,
             tutor_name=body.tutor_name,
             rate_unit=body.rate_unit,
+            lessons_before=body.lessons_before,
+            reason=body.reason,
         )
 
     @app.post("/v1/notify/payment")
