@@ -16,7 +16,7 @@ from simple4u_bot.config import get_settings
 from simple4u_bot.handlers.student import router as student_router
 from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.notify import NotifyService
-from simple4u_bot.services.store import BindingStore
+from simple4u_bot.services.store_factory import create_binding_store
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class InjectMiddleware(BaseMiddleware):
     def __init__(
         self,
-        store: BindingStore,
+        store: Any,
         notify: NotifyService,
         backend: BackendClient,
     ) -> None:
@@ -50,7 +50,11 @@ async def run() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     settings = get_settings()
-    store = BindingStore(settings.bot_db_path)
+    store = create_binding_store(
+        binding_store=settings.binding_store,
+        bot_db_path=settings.bot_db_path,
+        gcp_project=settings.gcp_project or None,
+    )
 
     bot = Bot(
         token=settings.telegram_bot_token,
@@ -63,7 +67,13 @@ async def run() -> None:
     dp.update.middleware(InjectMiddleware(store, notify, backend))
     dp.include_router(student_router)
 
-    api = create_api(settings=settings, store=store, notify=notify)
+    api = create_api(
+        settings=settings,
+        store=store,
+        notify=notify,
+        bot=bot,
+        dp=dp,
+    )
     config = uvicorn.Config(
         api,
         host=settings.bot_http_host,
@@ -73,16 +83,17 @@ async def run() -> None:
     server = uvicorn.Server(config)
 
     logger.info(
-        "Starting Simple4U bot · HTTP :%s · DB %s · backend %s",
+        "Starting Simple4U bot · mode=%s · HTTP :%s · store=%s · backend=%s",
+        settings.bot_mode,
         settings.bot_http_port,
-        settings.bot_db_path,
+        settings.binding_store,
         settings.backend_url,
     )
 
-    await asyncio.gather(
-        dp.start_polling(bot),
-        server.serve(),
-    )
+    if settings.bot_mode == "polling":
+        await asyncio.gather(dp.start_polling(bot), server.serve())
+        return
+    await server.serve()
 
 
 def main() -> None:

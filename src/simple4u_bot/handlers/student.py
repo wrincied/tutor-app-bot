@@ -12,6 +12,9 @@ from simple4u_bot.services import messages
 from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_label, t
 from simple4u_bot.services.store import Binding, BindingStore
+from simple4u_bot.services.home import build_home_message
+from simple4u_bot.services.telegram_send import reply_text
+from simple4u_bot.services.vacation import vacation_body_from_profile
 
 router = Router(name="student")
 
@@ -46,11 +49,35 @@ def _lang_of(binding: Binding | None) -> str:
     return normalize_lang(binding.bot_lang if binding else None)
 
 
+def _vacation_notice(
+    profile: dict | None,
+    lang: str,
+    binding: Binding | None,
+) -> str | None:
+    body = vacation_body_from_profile(profile, lang)
+    if not body:
+        return None
+    return messages.vacation_notice(
+        text=body,
+        title=t(lang, "vacation_title"),
+        tutor_name=_tutor_name(binding),
+        lang=lang,
+        site_url=_site_url(),
+    )
+
+
+def _with_vacation_prefix(text: str, vacation_notice: str | None) -> str:
+    if not vacation_notice:
+        return text
+    return f"{vacation_notice}\n\n{text}"
+
+
 def _match_action(text: str, lang: str) -> str | None:
     mapping = {
         t(lang, "btn_lessons"): "lessons",
         t(lang, "btn_payment"): "payment",
-        t(lang, "btn_profile"): "profile",
+        t(lang, "btn_home"): "home",
+        t(lang, "btn_profile"): "home",
         t(lang, "btn_language"): "language",
         t(lang, "btn_unlink"): "unlink",
         t(lang, "btn_back"): "back",
@@ -58,11 +85,12 @@ def _match_action(text: str, lang: str) -> str | None:
     # Also accept labels from all languages (user may switch mid-session).
     if text in mapping:
         return mapping[text]
-    for code in ("ru", "en", "de", "kz", "uk", "by"):
+    for code in ("ru", "en", "de"):
         for key, action in (
             ("btn_lessons", "lessons"),
             ("btn_payment", "payment"),
-            ("btn_profile", "profile"),
+            ("btn_home", "home"),
+            ("btn_profile", "home"),
             ("btn_language", "language"),
             ("btn_unlink", "unlink"),
             ("btn_back", "back"),
@@ -96,7 +124,7 @@ async def _require_binding(message: Message, store: BindingStore) -> Binding | N
         return None
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await message.answer(t("ru", "not_linked"))
+        await reply_text(message,t("ru", "not_linked"))
         return None
     return binding
 
@@ -110,7 +138,7 @@ async def start_with_token(
 ) -> None:
     token = (command.args or "").strip()
     if not token or message.chat is None or message.from_user is None:
-        await message.answer(t("ru", "need_link"))
+        await reply_text(message,t("ru", "need_link"))
         return
 
     binding = store.bind_chat(
@@ -121,7 +149,7 @@ async def start_with_token(
         telegram_display_name=_display_name(message),
     )
     if binding is None:
-        await message.answer(t("ru", "need_link"))
+        await reply_text(message,t("ru", "need_link"))
         return
 
     await backend.notify_linked(
@@ -141,13 +169,20 @@ async def start_with_token(
         store.set_tutor_name(binding.student_id, str(profile_tutor))
         binding = store.get_by_chat(message.chat.id) or binding
     name = f", {binding.student_name}" if binding.student_name else ""
-    await message.answer(
+    welcome_lines = [_with_tutor(lang, t(lang, "welcome").format(name=name), binding)]
+    vacation_body = vacation_body_from_profile(profile, lang)
+    if vacation_body:
+        welcome_lines.append(vacation_body)
+    await reply_text(
+        message,
         messages.branded(
-            "Simple4U",
-            _with_tutor(lang, t(lang, "welcome").format(name=name), binding),
+            t(lang, "brand_title"),
+            *welcome_lines,
+            lang=lang,
             site_url=_site_url(),
         ),
         reply_markup=keyboards.main_menu(lang),
+        link_preview=True,
     )
 
 
@@ -164,16 +199,22 @@ async def start_plain(message: Message, store: BindingStore, backend: BackendCli
             existing = store.get_by_chat(message.chat.id) or existing
         lang = _lang_of(existing)
         name = f", {existing.student_name}" if existing.student_name else ""
-        await message.answer(
+        welcome_lines = [_with_tutor(lang, t(lang, "welcome").format(name=name), existing)]
+        vacation_body = vacation_body_from_profile(profile, lang)
+        if vacation_body:
+            welcome_lines.append(vacation_body)
+        await reply_text(
+            message,
             messages.branded(
-                "Simple4U",
-                _with_tutor(lang, t(lang, "welcome").format(name=name), existing),
+                t(lang, "brand_title"),
+                *welcome_lines,
+                lang=lang,
                 site_url=_site_url(),
             ),
             reply_markup=keyboards.main_menu(lang),
         )
         return
-    await message.answer(messages.welcome_need_link(site_url=_site_url()))
+    await reply_text(message, messages.welcome_need_link(lang="ru", site_url=_site_url()))
 
 
 @router.message(Command("status"))
@@ -182,12 +223,12 @@ async def status(message: Message, store: BindingStore) -> None:
         return
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await message.answer(t("ru", "need_link"))
+        await reply_text(message,t("ru", "need_link"))
         return
     lang = _lang_of(binding)
     state = "ON" if binding.bot_active else "OFF"
-    await message.answer(
-        f"{t(lang, 'profile_title')} · `{binding.student_id}` · bot {state}",
+    await reply_text(message,
+        f"{t(lang, 'home_title')} · `{binding.student_id}` · bot {state}",
         reply_markup=keyboards.main_menu(lang),
     )
 
@@ -202,46 +243,74 @@ async def menu_text(
         return
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await message.answer(t("ru", "not_linked"))
+        await reply_text(message,t("ru", "not_linked"))
         return
 
     lang = _lang_of(binding)
+    profile = await backend.get_profile(binding.student_id)
+    vacation = _vacation_notice(profile, lang, binding)
     action = _match_action(message.text.strip(), lang)
     if action is None:
-        await message.answer(t(lang, "menu_hint"), reply_markup=keyboards.main_menu(lang))
+        body = t(lang, "menu_hint")
+        if vacation:
+            body = _with_vacation_prefix(body, vacation)
+        await reply_text(message, body, reply_markup=keyboards.main_menu(lang))
         return
 
     if action == "back":
-        await message.answer(t(lang, "menu_hint"), reply_markup=keyboards.main_menu(lang))
+        await reply_text(message, t(lang, "menu_hint"), reply_markup=keyboards.main_menu(lang))
         return
 
     if action == "lessons":
         data = await backend.get_lessons(binding.student_id)
         if data is None:
-            await message.answer(t(lang, "error"), reply_markup=keyboards.main_menu(lang))
+            await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
             return
         items = data.get("items") or []
         if not items:
-            await message.answer(t(lang, "lessons_empty"), reply_markup=keyboards.main_menu(lang))
+            await reply_text(
+                message,
+                messages.section_screen(
+                    icon="📚",
+                    title=t(lang, "lessons_screen_title"),
+                    body=t(lang, "lessons_empty"),
+                    tutor_name=_tutor_name(binding),
+                    lang=lang,
+                    site_url=_site_url(),
+                ),
+                reply_markup=keyboards.main_menu(lang),
+            )
             return
         tz = str(data.get("timezone") or "UTC")
-        header = _with_tutor(lang, t(lang, "lessons_title"), binding)
-        lines = [header, ""]
-        for item in items:
-            if isinstance(item, dict):
-                lines.append(_format_lesson_line(lang, item, tz))
-        await message.answer("\n".join(lines), reply_markup=keyboards.main_menu(lang))
+        lesson_lines = [
+            _format_lesson_line(lang, item, tz)
+            for item in items
+            if isinstance(item, dict)
+        ]
+        body = "\n".join([t(lang, "lessons_title"), ""] + lesson_lines)
+        await reply_text(
+            message,
+            messages.section_screen(
+                icon="📚",
+                title=t(lang, "lessons_screen_title"),
+                body=body,
+                tutor_name=_tutor_name(binding),
+                lang=lang,
+                site_url=_site_url(),
+            ),
+            reply_markup=keyboards.main_menu(lang),
+        )
         return
 
     if action == "payment":
         data = await backend.get_payment_summary(binding.student_id)
         if data is None:
-            await message.answer(t(lang, "error"), reply_markup=keyboards.main_menu(lang))
+            await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
             return
         billing = data.get("billing_type") or "package"
         key = "payment_postpaid" if billing == "postpaid" else "payment_package"
         is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
-        text = t(lang, key).format(
+        body = t(lang, key).format(
             topped=data.get("lessons_topped_up", 0),
             completed=data.get("lessons_completed", 0),
             balance=data.get("balance_lessons", 0),
@@ -254,29 +323,77 @@ async def menu_text(
                 lang, "balance_unit_lesson" if is_lesson_unit else "balance_unit_hour"
             ),
         )
-        await message.answer(
-            f"{_with_tutor(lang, t(lang, 'payment_title'), binding)}\n\n{text}",
+        await reply_text(
+            message,
+            messages.section_screen(
+                icon="💳",
+                title=t(lang, "payment_screen_title"),
+                body=body,
+                tutor_name=_tutor_name(binding),
+                lang=lang,
+                site_url=_site_url(),
+            ),
             reply_markup=keyboards.main_menu(lang),
         )
         return
 
-    if action == "profile":
-        meta = LANG_META[normalize_lang(lang)]
-        text = _with_tutor(
-            lang,
-            f"{t(lang, 'profile_title')}\n"
-            f"{t(lang, 'profile_lang').format(flag=meta['flag'], label=meta['label'])}",
-            binding,
+    if action == "home":
+        payment = await backend.get_payment_summary(binding.student_id)
+        if payment is None:
+            await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
+            return
+        text = build_home_message(
+            lang=lang,
+            profile=profile,
+            payment=payment,
+            binding_name=binding.student_name,
+            site_url=_site_url(),
         )
-        await message.answer(text, reply_markup=keyboards.profile_menu(lang))
+        await reply_text(
+            message,
+            text,
+            reply_markup=keyboards.home_actions_inline(lang),
+        )
         return
 
     if action == "language":
-        await message.answer(t(lang, "pick_lang"), reply_markup=keyboards.language_inline())
+        await reply_text(message,t(lang, "pick_lang"), reply_markup=keyboards.language_inline())
         return
 
     if action == "unlink":
-        await message.answer(
+        await reply_text(message,
+            t(lang, "unlink_confirm"),
+            reply_markup=keyboards.unlink_confirm_inline(lang),
+        )
+
+
+@router.callback_query(F.data.startswith("home:"))
+async def on_home_action(
+    query: CallbackQuery,
+    store: BindingStore,
+    backend: BackendClient,
+) -> None:
+    if query.message is None or not query.data:
+        await query.answer()
+        return
+    action = query.data.split(":", 1)[1]
+    binding = store.get_by_chat(query.message.chat.id)
+    if binding is None:
+        await query.answer()
+        await reply_text(query.message, t("ru", "not_linked"))
+        return
+    lang = _lang_of(binding)
+    await query.answer()
+    if action == "language":
+        await reply_text(
+            query.message,
+            t(lang, "pick_lang"),
+            reply_markup=keyboards.language_inline(),
+        )
+        return
+    if action == "unlink":
+        await reply_text(
+            query.message,
             t(lang, "unlink_confirm"),
             reply_markup=keyboards.unlink_confirm_inline(lang),
         )
@@ -296,13 +413,13 @@ async def on_lang(
     binding = store.get_by_chat(query.message.chat.id)
     if binding is None:
         await query.answer()
-        await query.message.answer(t("ru", "not_linked"))
+        await reply_text(query.message,t("ru", "not_linked"))
         return
     store.set_lang(binding.student_id, lang)
     await backend.set_language(binding.student_id, lang)
     meta = LANG_META[lang]
     await query.answer()
-    await query.message.answer(
+    await reply_text(query.message,
         t(lang, "lang_set").format(flag=meta["flag"], label=meta["label"]),
         reply_markup=keyboards.main_menu(lang),
     )
@@ -323,7 +440,7 @@ async def on_unlink(
     if decision != "yes":
         await query.answer()
         if binding:
-            await query.message.answer(t(lang, "menu_hint"), reply_markup=keyboards.main_menu(lang))
+            await reply_text(query.message,t(lang, "menu_hint"), reply_markup=keyboards.main_menu(lang))
         return
     if binding is None:
         await query.answer()
@@ -339,4 +456,4 @@ async def on_unlink(
     )
     store.unlink_chat(binding.chat_id)
     await query.answer()
-    await query.message.answer(t(lang, "unlinked"), reply_markup=keyboards.remove_keyboard())
+    await reply_text(query.message,t(lang, "unlinked"), reply_markup=keyboards.remove_keyboard())

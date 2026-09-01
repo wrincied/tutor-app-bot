@@ -6,7 +6,7 @@ def test_balance_message() -> None:
     assert "Баланс пакета" in text
     assert "2" in text
     assert "© Simple4U" in text
-    assert "simple4u-64822.web.app" in text
+    assert "simple4u.at" in text
     assert "занятий" in messages.balance(lessons_left=2, rate_unit="lesson")
     assert "Репетитор: Анна" in messages.balance(lessons_left=2, tutor_name="Анна")
     assert "1.5 ч" in messages.balance(lessons_left=1.5, rate_unit="hour")
@@ -38,6 +38,19 @@ def test_payment_message() -> None:
     assert "+1.5 ч" in hours
 
 
+def test_payment_message_german() -> None:
+    text = messages.payment(
+        amount_label="€225",
+        lessons_added=5,
+        tutor_name="Anna",
+        rate_unit="lesson",
+        lang="de",
+    )
+    assert "Zahlung erhalten" in text
+    assert "Tutor: Anna" in text
+    assert "Danke!" in text
+
+
 def test_lesson_start_with_link() -> None:
     text = messages.lesson_start(
         minutes_before=30,
@@ -55,6 +68,43 @@ def test_homework_message() -> None:
     text = messages.homework(text="упр. 4–6, стр. 18.", tutor_name="Анна")
     assert "Домашнее задание" in text
     assert "упр. 4–6" in text
+    assert "Репетитор: Анна" in text
+
+
+def test_section_screen() -> None:
+    text = messages.section_screen(
+        icon="💳",
+        title="Оплата",
+        body="Осталось: 2 занятий",
+        tutor_name="Admin",
+    )
+    assert "<b>💳 Оплата</b>" in text
+    assert "Осталось: 2 занятий" in text
+    assert "Репетитор: Admin" in text
+    assert "© Simple4U" in text
+
+
+def test_section_screen_german_tutor() -> None:
+    text = messages.section_screen(
+        icon="💳",
+        title="Zahlung",
+        body="Übrig: 2 Unterricht",
+        tutor_name="Admin",
+        lang="de",
+    )
+    assert "Tutor: Admin" in text
+    assert "Репетитор:" not in text
+
+
+def test_vacation_notice_message() -> None:
+    text = messages.vacation_notice(
+        title="Отпуск",
+        text="В отпуске до 25 августа",
+        tutor_name="Анна",
+        lang="ru",
+    )
+    assert "Отпуск" in text
+    assert "25 августа" in text
     assert "Репетитор: Анна" in text
 
 

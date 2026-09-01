@@ -92,6 +92,12 @@ POST /v1/bot-active
 pytest
 ```
 
+## Деплой (Cloud Run, 24/7)
+
+Пошаговая инструкция: **[deploy/DEPLOY.md](deploy/DEPLOY.md)**
+
+Кратко: `gcloud run deploy` из папки `bot/`, webhook + Firestore, затем `BOT_API_URL` в backend.
+
 ## Git
 
 Это **отдельный git-репозиторий** внутри `tutor-app/bot` (как `backend/`).  

@@ -18,9 +18,26 @@ def main_menu(lang: str | None) -> ReplyKeyboardMarkup:
                 KeyboardButton(text=t(lang, "btn_lessons")),
                 KeyboardButton(text=t(lang, "btn_payment")),
             ],
-            [KeyboardButton(text=t(lang, "btn_profile"))],
+            [KeyboardButton(text=t(lang, "btn_home"))],
         ],
         resize_keyboard=True,
+    )
+
+
+def home_actions_inline(lang: str | None) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t(lang, "btn_language"),
+                    callback_data="home:language",
+                ),
+                InlineKeyboardButton(
+                    text=t(lang, "btn_unlink"),
+                    callback_data="home:unlink",
+                ),
+            ],
+        ],
     )
 
 
