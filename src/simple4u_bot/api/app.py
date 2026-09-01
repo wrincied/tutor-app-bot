@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from typing import Annotated
+import logging
+from contextlib import asynccontextmanager
+from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from aiogram import Bot, Dispatcher
+from aiogram.types import Update
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from simple4u_bot.config import Settings
 from simple4u_bot.services.notify import NotifyService
-from simple4u_bot.services.store import BindingStore
+from simple4u_bot.services.store_factory import BindingStoreProtocol
+
+logger = logging.getLogger(__name__)
 
 
 class RegisterLinkBody(BaseModel):
@@ -25,15 +31,17 @@ class BotActiveBody(BaseModel):
 
 class BalanceBody(BaseModel):
     student_id: str
-    lessons_left: float = Field(ge=0)
+    lessons_left: float
     tutor_name: str | None = None
     rate_unit: str | None = None
+    lessons_before: float | None = None
+    reason: str | None = None
 
 
 class PaymentBody(BaseModel):
     student_id: str
     amount_label: str
-    lessons_added: float = Field(ge=0)
+    lessons_added: float = 0
     tutor_name: str | None = None
     rate_unit: str | None = None
 
@@ -66,10 +74,29 @@ class UnlinkBody(BaseModel):
 def create_api(
     *,
     settings: Settings,
-    store: BindingStore,
+    store: BindingStoreProtocol,
     notify: NotifyService,
+    bot: Bot | None = None,
+    dp: Dispatcher | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="Simple4U Bot API", version="0.1.0")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        del app
+        if settings.bot_mode == "webhook" and bot is not None:
+            if not settings.webhook_url or not settings.webhook_secret:
+                raise RuntimeError("WEBHOOK_BASE_URL and WEBHOOK_SECRET are required in webhook mode")
+            await bot.set_webhook(
+                url=settings.webhook_url,
+                secret_token=settings.webhook_secret,
+                drop_pending_updates=True,
+            )
+            logger.info("Telegram webhook registered: %s", settings.webhook_url)
+        yield
+        if settings.bot_mode == "webhook" and bot is not None:
+            await bot.delete_webhook()
+            logger.info("Telegram webhook removed")
+
+    app = FastAPI(title="Simple4U Bot API", version="0.1.0", lifespan=lifespan)
 
     def require_secret(
         x_bot_secret: Annotated[str | None, Header(alias="X-Bot-Secret")] = None,
@@ -77,9 +104,25 @@ def create_api(
         if not x_bot_secret or x_bot_secret != settings.bot_api_secret:
             raise HTTPException(status_code=401, detail="invalid bot secret")
 
+    if bot is not None and dp is not None and settings.bot_mode == "webhook":
+
+        @app.post(settings.webhook_path)
+        async def telegram_webhook(
+            request: Request,
+            x_telegram_bot_api_secret_token: Annotated[
+                str | None, Header(alias="X-Telegram-Bot-Api-Secret-Token")
+            ] = None,
+        ) -> dict[str, bool]:
+            if x_telegram_bot_api_secret_token != settings.webhook_secret:
+                raise HTTPException(status_code=403, detail="invalid webhook secret")
+            payload: dict[str, Any] = await request.json()
+            update = Update.model_validate(payload, context={"bot": bot})
+            await dp.feed_update(bot, update)
+            return {"ok": True}
+
     @app.get("/health")
     async def health() -> dict[str, str]:
-        return {"status": "ok"}
+        return {"status": "ok", "mode": settings.bot_mode}
 
     @app.post("/v1/links")
     async def register_link(
@@ -116,6 +159,8 @@ def create_api(
             body.lessons_left,
             tutor_name=body.tutor_name,
             rate_unit=body.rate_unit,
+            lessons_before=body.lessons_before,
+            reason=body.reason,
         )
 
     @app.post("/v1/notify/payment")

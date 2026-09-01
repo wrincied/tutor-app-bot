@@ -8,6 +8,7 @@ from aiogram.exceptions import TelegramAPIError
 from simple4u_bot.config import Settings
 from simple4u_bot.services import messages
 from simple4u_bot.services.store import BindingStore
+from simple4u_bot.services.telegram_send import send_text
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,9 @@ class NotifyService:
         if not binding.bot_active:
             return {"ok": False, "error": "bot_inactive"}
         try:
-            await self.bot.send_message(chat_id=binding.chat_id, text=text)
+            await send_text(self.bot, binding.chat_id, text, link_preview=False)
         except TelegramAPIError as exc:
+            logger.warning("telegram send failed for %s: %s", student_id, exc)
             return {"ok": False, "error": "telegram_error", "detail": str(exc)}
         return {"ok": True, "chat_id": binding.chat_id}
 
@@ -40,6 +42,10 @@ class NotifyService:
         binding = self.store.get_by_student(student_id)
         return (binding.tutor_name if binding else None) or None
 
+    def _lang_of(self, student_id: str) -> str:
+        binding = self.store.get_by_student(student_id)
+        return (binding.bot_lang if binding else None) or "ru"
+
     async def balance(
         self,
         student_id: str,
@@ -47,6 +53,8 @@ class NotifyService:
         *,
         tutor_name: str | None = None,
         rate_unit: str | None = None,
+        lessons_before: float | int | None = None,
+        reason: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -54,6 +62,9 @@ class NotifyService:
                 lessons_left=lessons_left,
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
+                lessons_before=lessons_before,
+                reason=reason,
+                lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
         )
@@ -74,6 +85,7 @@ class NotifyService:
                 lessons_added=lessons_added,
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
+                lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
         )
@@ -94,6 +106,7 @@ class NotifyService:
                 time_label=time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
         )
@@ -110,6 +123,7 @@ class NotifyService:
             messages.homework(
                 text=text,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
         )
@@ -128,6 +142,7 @@ class NotifyService:
                 new_time_label=new_time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
         )
