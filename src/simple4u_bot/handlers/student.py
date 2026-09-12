@@ -12,7 +12,7 @@ from simple4u_bot.services import messages
 from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_label, t
 from simple4u_bot.services.store import Binding, BindingStore
-from simple4u_bot.services.home import build_home_message
+from simple4u_bot.services.home import build_home_message, format_amount
 from simple4u_bot.services.telegram_send import reply_text
 from simple4u_bot.services.vacation import vacation_body_from_profile
 
@@ -124,7 +124,7 @@ async def _require_binding(message: Message, store: BindingStore) -> Binding | N
         return None
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await reply_text(message,t("ru", "not_linked"))
+        await reply_text(message,t("de", "not_linked"))
         return None
     return binding
 
@@ -138,7 +138,7 @@ async def start_with_token(
 ) -> None:
     token = (command.args or "").strip()
     if not token or message.chat is None or message.from_user is None:
-        await reply_text(message,t("ru", "need_link"))
+        await reply_text(message,t("de", "need_link"))
         return
 
     binding = store.bind_chat(
@@ -149,7 +149,7 @@ async def start_with_token(
         telegram_display_name=_display_name(message),
     )
     if binding is None:
-        await reply_text(message,t("ru", "need_link"))
+        await reply_text(message,t("de", "need_link"))
         return
 
     await backend.notify_linked(
@@ -214,7 +214,7 @@ async def start_plain(message: Message, store: BindingStore, backend: BackendCli
             reply_markup=keyboards.main_menu(lang),
         )
         return
-    await reply_text(message, messages.welcome_need_link(lang="ru", site_url=_site_url()))
+    await reply_text(message, messages.welcome_need_link(lang="de", site_url=_site_url()))
 
 
 @router.message(Command("status"))
@@ -223,7 +223,7 @@ async def status(message: Message, store: BindingStore) -> None:
         return
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await reply_text(message,t("ru", "need_link"))
+        await reply_text(message,t("de", "need_link"))
         return
     lang = _lang_of(binding)
     state = "ON" if binding.bot_active else "OFF"
@@ -243,7 +243,7 @@ async def menu_text(
         return
     binding = store.get_by_chat(message.chat.id)
     if binding is None:
-        await reply_text(message,t("ru", "not_linked"))
+        await reply_text(message,t("de", "not_linked"))
         return
 
     lang = _lang_of(binding)
@@ -311,12 +311,12 @@ async def menu_text(
         key = "payment_postpaid" if billing == "postpaid" else "payment_package"
         is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
         body = t(lang, key).format(
-            topped=data.get("lessons_topped_up", 0),
-            completed=data.get("lessons_completed", 0),
-            balance=data.get("balance_lessons", 0),
-            unpaid=data.get("unpaid_lessons_count", 0),
-            credit=data.get("credit_limit", 0),
-            rate=data.get("rate_per_hour", 0),
+            topped=format_amount(data.get("lessons_topped_up", 0) or 0),
+            completed=format_amount(data.get("lessons_completed", 0) or 0),
+            balance=format_amount(data.get("balance_lessons", 0) or 0),
+            unpaid=format_amount(data.get("unpaid_lessons_count", 0) or 0),
+            credit=format_amount(data.get("credit_limit", 0) or 0),
+            rate=format_amount(data.get("rate_per_hour", 0) or 0),
             currency=data.get("rate_currency", "EUR"),
             rate_unit=t(lang, "rate_unit_lesson" if is_lesson_unit else "rate_unit_hour"),
             balance_unit=t(
@@ -380,7 +380,7 @@ async def on_home_action(
     binding = store.get_by_chat(query.message.chat.id)
     if binding is None:
         await query.answer()
-        await reply_text(query.message, t("ru", "not_linked"))
+        await reply_text(query.message, t("de", "not_linked"))
         return
     lang = _lang_of(binding)
     await query.answer()
@@ -413,7 +413,7 @@ async def on_lang(
     binding = store.get_by_chat(query.message.chat.id)
     if binding is None:
         await query.answer()
-        await reply_text(query.message,t("ru", "not_linked"))
+        await reply_text(query.message,t("de", "not_linked"))
         return
     store.set_lang(binding.student_id, lang)
     await backend.set_language(binding.student_id, lang)

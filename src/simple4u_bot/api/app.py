@@ -69,6 +69,8 @@ class LessonMovedBody(BaseModel):
 
 class UnlinkBody(BaseModel):
     student_id: str = Field(min_length=1)
+    notify: bool = False
+    tutor_name: str | None = None
 
 
 def create_api(
@@ -217,8 +219,19 @@ def create_api(
         body: UnlinkBody,
         _: Annotated[None, Depends(require_secret)] = None,
     ) -> dict:
+        notify_result: dict | None = None
+        if body.notify:
+            notify_result = await notify.unlinked_by_tutor(
+                body.student_id,
+                tutor_name=body.tutor_name,
+            )
         store.unlink_student(body.student_id)
-        return {"ok": True, "student_id": body.student_id}
+        return {
+            "ok": True,
+            "student_id": body.student_id,
+            "notified": bool(notify_result and notify_result.get("ok")),
+            "notify": notify_result,
+        }
 
     @app.get("/v1/bindings/{student_id}")
     async def get_binding(

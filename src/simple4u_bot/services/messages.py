@@ -299,3 +299,20 @@ def welcome_need_link(*, lang: str | None = None, site_url: str | None = None) -
         lang=lang,
         site_url=site_url,
     )
+
+
+def unlinked_by_tutor(
+    *,
+    tutor_name: str | None = None,
+    lang: str | None = None,
+    site_url: str | None = None,
+) -> str:
+    tutor = _tutor_line(tutor_name, lang)
+    return branded(
+        t(lang, "brand_title"),
+        t(lang, "unlinked_by_tutor_title"),
+        t(lang, "unlinked_by_tutor_body"),
+        tutor,
+        lang=lang,
+        site_url=site_url,
+    )

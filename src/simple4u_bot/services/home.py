@@ -12,11 +12,15 @@ _CURRENCY_SYMBOL: dict[str, str] = {
 }
 
 
-def _fmt_amount(value: float | int) -> str:
+def format_amount(value: float | int) -> str:
     n = float(value)
     if n == int(n):
         return str(int(n))
     return f"{n:.2f}".rstrip("0").rstrip(".")
+
+
+def _fmt_amount(value: float | int) -> str:
+    return format_amount(value)
 
 
 def _currency_suffix(code: str | None) -> str:

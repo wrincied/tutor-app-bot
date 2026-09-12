@@ -112,6 +112,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Язык сохранён: {flag} {label}",
         "unlink_confirm": "Отключить бота? Репетитор получит уведомление, что ты отвязал Telegram.",
         "unlinked": "Бот отключён. Чтобы снова получать уведомления — открой новую ссылку от репетитора.",
+        "unlinked_by_tutor_title": "Репетитор отключил бота",
+        "unlinked_by_tutor_body": "Уведомления больше не будут приходить. Чтобы подключить снова — открой новую персональную ссылку от репетитора.",
         "error": "Не удалось загрузить данные. Попробуй позже.",
         "menu_hint": "Выбери раздел в меню ниже.",
         "vacation_title": "Отпуск",
@@ -146,7 +148,7 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "welcome_linked_tutor": "Твой репетитор: {name}.",
         "welcome_linked_body": "Сюда будут приходить баланс, оплата, старт урока и домашка.",
         "welcome_need_link_hello": "Привет! Я бот Simple4U.",
-        "welcome_need_link_body": "Открой персональную ссылку от репетитора, чтобы получать уведомления.",
+        "welcome_need_link_body": "Нажми ссылку от репетитора (кнопка «Открыть в Telegram» или QR). Не вводи /start вручную.",
     },
     "en": {
         "btn_lessons": "📚 Lessons",
@@ -199,6 +201,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Language saved: {flag} {label}",
         "unlink_confirm": "Disable the bot? Your tutor will be notified that you unlinked Telegram.",
         "unlinked": "Bot disabled. To reconnect, open a new invite link from your tutor.",
+        "unlinked_by_tutor_title": "Your tutor disconnected the bot",
+        "unlinked_by_tutor_body": "You will no longer receive notifications. To reconnect, open a new personal invite link from your tutor.",
         "error": "Could not load data. Try again later.",
         "menu_hint": "Pick a section from the menu below.",
         "vacation_title": "Away",
@@ -286,6 +290,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Sprache gespeichert: {flag} {label}",
         "unlink_confirm": "Bot deaktivieren? Dein Tutor wird benachrichtigt.",
         "unlinked": "Bot deaktiviert. Für neue Nachrichten brauchst du einen neuen Link.",
+        "unlinked_by_tutor_title": "Dein Tutor hat den Bot getrennt",
+        "unlinked_by_tutor_body": "Du erhältst keine Benachrichtigungen mehr. Zum erneuten Verbinden brauchst du einen neuen persönlichen Link vom Tutor.",
         "error": "Daten konnten nicht geladen werden.",
         "menu_hint": "Wähle einen Bereich im Menü.",
         "vacation_title": "Abwesenheit",
@@ -371,6 +377,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Тіл сақталды: {flag} {label}",
         "unlink_confirm": "Ботты өшіру? Репетиторға хабарлама барады.",
         "unlinked": "Бот өшірілді. Қайта қосу үшін жаңа сілтеме керек.",
+        "unlinked_by_tutor_title": "Репетитор ботты өшірді",
+        "unlinked_by_tutor_body": "Хабарламалар енді келмейді. Қайта қосу үшін репетитордан жаңа сілтеме ашыңыз.",
         "error": "Деректер жүктелмеді.",
         "menu_hint": "Мәзірден бөлімді таңдаңыз.",
         "vacation_title": "Демалыс",
@@ -426,6 +434,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Мову збережено: {flag} {label}",
         "unlink_confirm": "Вимкнути бота? Репетитор отримає сповіщення.",
         "unlinked": "Бота вимкнено. Для повторного підключення потрібне нове посилання.",
+        "unlinked_by_tutor_title": "Репетитор вимкнув бота",
+        "unlinked_by_tutor_body": "Сповіщення більше не приходитимуть. Щоб підключити знову — відкрий нове персональне посилання від репетитора.",
         "error": "Не вдалося завантажити дані.",
         "menu_hint": "Обери розділ у меню.",
         "vacation_title": "Відпустка",
@@ -481,6 +491,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "lang_set": "Мову захавана: {flag} {label}",
         "unlink_confirm": "Адключыць бота? Рэпетытар атрымае апавяшчэнне.",
         "unlinked": "Бот адключаны. Для паўторнага падключэння патрэбна новая спасылка.",
+        "unlinked_by_tutor_title": "Рэпетытар адключыў бота",
+        "unlinked_by_tutor_body": "Апавяшчэнні больш не будуць прыходзіць. Каб падключыць зноў — адкрый новую персанальную спасылку ад рэпетытара.",
         "error": "Не атрымалася загрузіць даныя.",
         "menu_hint": "Абяры раздзел у меню.",
         "vacation_title": "Адпачынак",
@@ -491,17 +503,17 @@ TEXTS: dict[Lang, dict[str, str]] = {
 
 
 def normalize_lang(raw: str | None) -> Lang:
-    value = (raw or "ru").strip().lower()
+    value = (raw or "de").strip().lower()
     if value in _LEGACY_LANG:
         return _LEGACY_LANG[value]
     if value in LANG_META:
         return value  # type: ignore[return-value]
-    return "ru"
+    return "de"
 
 
 def t(lang: str | None, key: str) -> str:
     code = normalize_lang(lang)
-    return TEXTS[code].get(key) or TEXTS["ru"].get(key) or key
+    return TEXTS[code].get(key) or TEXTS["de"].get(key) or TEXTS["en"].get(key) or key
 
 
 def unit_word(lang: str | None, rate_unit: str | None, *, plural: bool = True) -> str:
