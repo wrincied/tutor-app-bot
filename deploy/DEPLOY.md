@@ -78,6 +78,8 @@ gcloud run services update simple4u-bot `
 
 При старте бот сам вызовет `setWebhook` в Telegram.
 
+**Важно:** на shutdown webhook **не** удаляется. Иначе Cloud Run (`min-instances=0` или смена ревизии) сносит URL в Telegram, и бот «умирает», пока кто-то снова не дернёт сервис.
+
 Проверка:
 
 ```powershell

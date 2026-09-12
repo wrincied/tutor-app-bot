@@ -87,16 +87,17 @@ def create_api(
         if settings.bot_mode == "webhook" and bot is not None:
             if not settings.webhook_url or not settings.webhook_secret:
                 raise RuntimeError("WEBHOOK_BASE_URL and WEBHOOK_SECRET are required in webhook mode")
+            # Re-register on every cold start. Do NOT delete_webhook on shutdown:
+            # Cloud Run scales to zero and would wipe the Telegram webhook, leaving
+            # the bot unreachable until the next accidental HTTP hit.
             await bot.set_webhook(
                 url=settings.webhook_url,
                 secret_token=settings.webhook_secret,
-                drop_pending_updates=True,
+                drop_pending_updates=False,
+                allowed_updates=["message", "callback_query"],
             )
             logger.info("Telegram webhook registered: %s", settings.webhook_url)
         yield
-        if settings.bot_mode == "webhook" and bot is not None:
-            await bot.delete_webhook()
-            logger.info("Telegram webhook removed")
 
     app = FastAPI(title="Simple4U Bot API", version="0.1.0", lifespan=lifespan)
 
