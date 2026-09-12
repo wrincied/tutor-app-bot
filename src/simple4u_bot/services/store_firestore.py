@@ -37,7 +37,7 @@ class FirestoreBindingStore:
             telegram_user_id=data.get("telegram_user_id"),
             telegram_username=data.get("telegram_username"),
             telegram_display_name=data.get("telegram_display_name"),
-            bot_lang=str(data.get("bot_lang") or "ru"),
+            bot_lang=str(data.get("bot_lang") or "de"),
             tutor_name=data.get("tutor_name"),
         )
 
@@ -74,7 +74,7 @@ class FirestoreBindingStore:
                     "telegram_user_id": None,
                     "telegram_username": None,
                     "telegram_display_name": None,
-                    "bot_lang": "ru",
+                    "bot_lang": "de",
                 }
             )
 
@@ -131,7 +131,7 @@ class FirestoreBindingStore:
             telegram_user_id=updated.get("telegram_user_id"),
             telegram_username=updated.get("telegram_username"),
             telegram_display_name=updated.get("telegram_display_name"),
-            bot_lang=str(updated.get("bot_lang") or "ru"),
+            bot_lang=str(updated.get("bot_lang") or "de"),
             tutor_name=updated.get("tutor_name"),
         )
 

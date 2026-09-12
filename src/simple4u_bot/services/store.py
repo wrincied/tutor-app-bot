@@ -15,7 +15,7 @@ class Binding:
     telegram_user_id: str | None = None
     telegram_username: str | None = None
     telegram_display_name: str | None = None
-    bot_lang: str = "ru"
+    bot_lang: str = "de"
     tutor_name: str | None = None
 
 
@@ -54,7 +54,7 @@ class BindingStore:
                 ("telegram_user_id", "TEXT"),
                 ("telegram_username", "TEXT"),
                 ("telegram_display_name", "TEXT"),
-                ("bot_lang", "TEXT NOT NULL DEFAULT 'ru'"),
+                ("bot_lang", "TEXT NOT NULL DEFAULT 'de'"),
                 ("tutor_name", "TEXT"),
             ):
                 if col not in cols:
@@ -146,7 +146,7 @@ class BindingStore:
                 telegram_user_id=telegram_user_id or row["telegram_user_id"],
                 telegram_username=telegram_username or row["telegram_username"],
                 telegram_display_name=telegram_display_name or row["telegram_display_name"],
-                bot_lang=(row["bot_lang"] if "bot_lang" in row.keys() else None) or "ru",
+                bot_lang=(row["bot_lang"] if "bot_lang" in row.keys() else None) or "de",
                 tutor_name=(row["tutor_name"] if "tutor_name" in row.keys() else None),
             )
 
@@ -273,6 +273,6 @@ class BindingStore:
             telegram_user_id=row["telegram_user_id"],
             telegram_username=row["telegram_username"],
             telegram_display_name=row["telegram_display_name"],
-            bot_lang=(row["bot_lang"] if "bot_lang" in keys else None) or "ru",
+            bot_lang=(row["bot_lang"] if "bot_lang" in keys else None) or "de",
             tutor_name=(row["tutor_name"] if "tutor_name" in keys else None),
         )
