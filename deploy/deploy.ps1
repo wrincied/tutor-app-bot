@@ -16,7 +16,7 @@ gcloud run deploy $Service `
   --allow-unauthenticated `
   --memory 512Mi `
   --cpu 1 `
-  --min-instances 0 `
+  --min-instances 1 `
   --max-instances 3 `
   --set-secrets "TELEGRAM_BOT_TOKEN=TELEGRAM_BOT_TOKEN:latest,BOT_API_SECRET=BOT_API_SECRET:latest,WEBHOOK_SECRET=WEBHOOK_SECRET:latest" `
   --set-env-vars "BOT_MODE=webhook,BINDING_STORE=firestore,BOT_USERNAME=simp1e4ubot,PUBLIC_SITE_URL=https://simple4u.at,BACKEND_URL=https://tutor-app-backend--tutorassis.europe-west4.hosted.app,WEBHOOK_PATH=/telegram/webhook,GCP_PROJECT=$Project$(if ($WebhookBaseUrl) { ",WEBHOOK_BASE_URL=$WebhookBaseUrl" } else { '' })"

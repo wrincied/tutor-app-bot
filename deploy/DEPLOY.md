@@ -56,7 +56,7 @@ gcloud run deploy simple4u-bot `
   --allow-unauthenticated `
   --memory 512Mi `
   --cpu 1 `
-  --min-instances 0 `
+  --min-instances 1 `
   --max-instances 3 `
   --set-secrets "TELEGRAM_BOT_TOKEN=TELEGRAM_BOT_TOKEN:latest,BOT_API_SECRET=BOT_API_SECRET:latest,WEBHOOK_SECRET=WEBHOOK_SECRET:latest" `
   --set-env-vars "BOT_MODE=webhook,BINDING_STORE=firestore,BOT_USERNAME=simp1e4ubot,PUBLIC_SITE_URL=https://simple4u.at,BACKEND_URL=https://tutor-app-backend--tutorassis.europe-west4.hosted.app,WEBHOOK_PATH=/telegram/webhook,GCP_PROJECT=tutorassis"
@@ -78,7 +78,9 @@ gcloud run services update simple4u-bot `
 
 При старте бот сам вызовет `setWebhook` в Telegram.
 
-**Важно:** на shutdown webhook **не** удаляется. Иначе Cloud Run (`min-instances=0` или смена ревизии) сносит URL в Telegram, и бот «умирает», пока кто-то снова не дернёт сервис.
+**Важно:** на shutdown webhook **не** удаляется. Иначе при смене ревизии старый инстанс мог снести URL в Telegram.
+
+Для мгновенного ответа держим **`min-instances 1`** (иначе Cloud Run гасит контейнер в простое → cold start ~20–40 с).
 
 Проверка:
 
