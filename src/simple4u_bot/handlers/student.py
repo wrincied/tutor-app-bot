@@ -16,7 +16,7 @@ from simple4u_bot.services.time_format import format_range
 from simple4u_bot.services.vacation import vacation_body_from_profile
 
 router = Router(name="student")
-LESSONS_PAGE_SIZE = 15
+LESSONS_PAGE_SIZE = 3
 LESSONS_WINDOW_DAYS = 30
 
 
@@ -433,6 +433,11 @@ async def on_home_action(
             t(lang, "unlink_confirm"),
             reply_markup=keyboards.unlink_confirm_inline(lang),
         )
+
+
+@router.callback_query(F.data == "lessons:noop")
+async def on_lessons_noop(query: CallbackQuery) -> None:
+    await query.answer()
 
 
 @router.callback_query(F.data.startswith("lessons:page:"))

@@ -91,23 +91,20 @@ def unlink_confirm_inline(lang: str | None) -> InlineKeyboardMarkup:
 def lessons_pager(lang: str | None, *, page: int, pages: int) -> InlineKeyboardMarkup | None:
     if pages <= 1:
         return None
-    row: list[InlineKeyboardButton] = []
-    if page > 1:
-        row.append(
-            InlineKeyboardButton(
-                text=t(lang, "btn_lessons_prev"),
-                callback_data=f"lessons:page:{page - 1}",
-            )
-        )
-    if page < pages:
-        row.append(
-            InlineKeyboardButton(
-                text=t(lang, "btn_lessons_next"),
-                callback_data=f"lessons:page:{page + 1}",
-            )
-        )
-    if not row:
-        return None
+    row: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(
+            text=t(lang, "btn_lessons_prev") if page > 1 else "·",
+            callback_data=f"lessons:page:{page - 1}" if page > 1 else "lessons:noop",
+        ),
+        InlineKeyboardButton(
+            text=t(lang, "lessons_page_short").format(page=page, pages=pages),
+            callback_data="lessons:noop",
+        ),
+        InlineKeyboardButton(
+            text=t(lang, "btn_lessons_next") if page < pages else "·",
+            callback_data=f"lessons:page:{page + 1}" if page < pages else "lessons:noop",
+        ),
+    ]
     return InlineKeyboardMarkup(inline_keyboard=[row])
 
 
