@@ -85,18 +85,32 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "payment_title": "Оплата",
         "payment_screen_title": "Оплата",
         "payment_package": (
-            "Оплачено (пополнено): {topped} {balance_unit}\n"
-            "Проведено: {completed} занятий\n"
-            "Осталось: {balance} {balance_unit}\n"
-            "Ставка: {rate} {currency}{rate_unit}"
+            "Остаток\n"
+            "{balance} {balance_unit}\n"
+            "\n"
+            "Проведено\n"
+            "{completed} занятий · списано {consumed} {balance_unit}\n"
+            "\n"
+            "Всего зачислено\n"
+            "{topped} {balance_unit}\n"
+            "\n"
+            "Ставка\n"
+            "{rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
-            "Проведено: {completed} занятий\n"
-            "К оплате (долг): {unpaid} {balance_unit}\n"
-            "Лимит долга: {credit} {balance_unit}\n"
-            "Ставка: {rate} {currency}{rate_unit}"
+            "К оплате\n"
+            "{unpaid} {balance_unit}\n"
+            "\n"
+            "Проведено\n"
+            "{completed} занятий\n"
+            "\n"
+            "Лимит долга\n"
+            "{credit} {balance_unit}\n"
+            "\n"
+            "Ставка\n"
+            "{rate} {currency}{rate_unit}"
         ),
-        "rate_unit_hour": "/час",
+        "rate_unit_hour": "/ч",
         "rate_unit_lesson": "/занятие",
         "balance_unit_hour": "ч",
         "balance_unit_lesson": "занятий",
@@ -187,18 +201,32 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "payment_title": "Payments",
         "payment_screen_title": "Payments",
         "payment_package": (
-            "Topped up: {topped} {balance_unit}\n"
-            "Completed: {completed} lessons\n"
-            "Remaining: {balance} {balance_unit}\n"
-            "Rate: {rate} {currency}{rate_unit}"
+            "Remaining\n"
+            "{balance} {balance_unit}\n"
+            "\n"
+            "Completed\n"
+            "{completed} lessons · used {consumed} {balance_unit}\n"
+            "\n"
+            "Total credited\n"
+            "{topped} {balance_unit}\n"
+            "\n"
+            "Rate\n"
+            "{rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
-            "Completed: {completed} lessons\n"
-            "Due: {unpaid} {balance_unit}\n"
-            "Debt limit: {credit} {balance_unit}\n"
-            "Rate: {rate} {currency}{rate_unit}"
+            "Due\n"
+            "{unpaid} {balance_unit}\n"
+            "\n"
+            "Completed\n"
+            "{completed} lessons\n"
+            "\n"
+            "Credit limit\n"
+            "{credit} {balance_unit}\n"
+            "\n"
+            "Rate\n"
+            "{rate} {currency}{rate_unit}"
         ),
-        "rate_unit_hour": "/hour",
+        "rate_unit_hour": "/h",
         "rate_unit_lesson": "/lesson",
         "balance_unit_hour": "h",
         "balance_unit_lesson": "lessons",
@@ -289,16 +317,30 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "payment_title": "Zahlung",
         "payment_screen_title": "Zahlung",
         "payment_package": (
-            "Aufgeladen: {topped} {balance_unit}\n"
-            "Durchgeführt: {completed} Stunden\n"
-            "Übrig: {balance} {balance_unit}\n"
-            "Satz: {rate} {currency}{rate_unit}"
+            "Restguthaben\n"
+            "{balance} {balance_unit}\n"
+            "\n"
+            "Durchgeführt\n"
+            "{completed} Stunden · verbraucht {consumed} {balance_unit}\n"
+            "\n"
+            "Insgesamt gutgeschrieben\n"
+            "{topped} {balance_unit}\n"
+            "\n"
+            "Satz\n"
+            "{rate} {currency}{rate_unit}"
         ),
         "payment_postpaid": (
-            "Durchgeführt: {completed} Stunden\n"
-            "Offen: {unpaid} {balance_unit}\n"
-            "Limit: {credit} {balance_unit}\n"
-            "Satz: {rate} {currency}{rate_unit}"
+            "Offen\n"
+            "{unpaid} {balance_unit}\n"
+            "\n"
+            "Durchgeführt\n"
+            "{completed} Stunden\n"
+            "\n"
+            "Limit\n"
+            "{credit} {balance_unit}\n"
+            "\n"
+            "Satz\n"
+            "{rate} {currency}{rate_unit}"
         ),
         "rate_unit_hour": "/Std.",
         "rate_unit_lesson": "/Unterricht",

@@ -348,6 +348,7 @@ async def menu_text(
         is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
         body = t(lang, key).format(
             topped=format_amount(data.get("lessons_topped_up", 0) or 0),
+            consumed=format_amount(data.get("units_consumed", 0) or 0),
             completed=format_amount(data.get("lessons_completed", 0) or 0),
             balance=format_amount(data.get("balance_lessons", 0) or 0),
             unpaid=format_amount(data.get("unpaid_lessons_count", 0) or 0),
