@@ -7,8 +7,8 @@ from collections.abc import Sequence
 
 from simple4u_bot.services.i18n_bot import balance_reason_label, t, unit_word
 from simple4u_bot.services.time_format import (
+    format_clock,
     format_moved,
-    format_new_clock_only,
     format_range,
 )
 
@@ -72,8 +72,11 @@ def compose_message(
         if raw is None:
             continue
         text = str(raw).rstrip()
-        if text:
-            parts.append(text)
+        if not text:
+            # Keep intentional blank separators (e.g. between payment blocks).
+            parts.append("")
+            continue
+        parts.append(text)
     tutor = _tutor_line(tutor_name, lang)
     if tutor:
         if parts and parts[-1] != "":
@@ -204,9 +207,13 @@ def payment(
     tutor_name: str | None = None,
     rate_unit: str | None = None,
     balance_after: float | int | None = None,
+    paid_at: str | None = None,
+    timezone_name: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
+    from simple4u_bot.services.time_format import format_day
+
     unit = unit_word(lang, rate_unit)
     delta = float(lessons_added)
     if delta > 0:
@@ -216,8 +223,19 @@ def payment(
     else:
         delta_label = f"0 {unit}"
     amount = (amount_label or "").strip()
-    headline = f"{delta_label} · {amount}" if amount else delta_label
-    lines = [headline, ""]
+    day = (
+        format_day(paid_at, timezone_name=timezone_name, lang=lang)
+        if paid_at
+        else ""
+    )
+    if day:
+        headline = f"📅 {day} · {delta_label}"
+    else:
+        headline = delta_label
+    lines: list[str | None] = [headline]
+    if amount:
+        lines.append(amount)
+    lines.append("")
     if balance_after is not None:
         lines.append(
             t(lang, "notify_payment_new_balance").format(
@@ -309,24 +327,31 @@ def lesson_moved(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    if old_scheduled_at or new_scheduled_at:
-        moved = format_moved(
-            old_scheduled_at,
-            new_scheduled_at or new_time_label,
+    lines: list[str | None] = []
+    if (subject or "").strip():
+        lines.append(subject.strip())
+        lines.append("")
+
+    if old_scheduled_at and new_scheduled_at:
+        lines.append(
+            format_moved(
+                old_scheduled_at,
+                new_scheduled_at,
+                timezone_name=timezone_name,
+                lang=lang,
+            )
+        )
+    elif new_scheduled_at:
+        new_when = format_clock(
+            new_scheduled_at,
             timezone_name=timezone_name,
             lang=lang,
         )
-        new_clock = format_new_clock_only(new_scheduled_at, timezone_name=timezone_name)
+        lines.append(t(lang, "notify_lesson_moved_body").format(time=new_when))
     else:
-        moved = new_time_label or "—"
-        new_clock = new_time_label or "—"
-    lines: list[str | None] = [
-        moved,
-        "",
-        t(lang, "notify_lesson_moved_body").format(time=new_clock),
-    ]
-    if (subject or "").strip():
-        lines.insert(1, subject.strip())
+        label = (new_time_label or "").strip() or "—"
+        lines.append(t(lang, "notify_lesson_moved_body").format(time=label))
+
     html_lines: list[str | None] = []
     if meeting_link:
         href = html.escape(meeting_link.strip(), quote=True)
@@ -362,6 +387,43 @@ def section_screen(
     )
 
 
+def labeled_screen(
+    *,
+    icon: str,
+    title: str,
+    blocks: Sequence[tuple[str, str | Sequence[str]]],
+    tutor_name: str | None = None,
+    lang: str | None = None,
+    site_url: str | None = None,
+) -> str:
+    """Label + bold value(s) blocks — readable fact cards for payment/profile."""
+    html_lines: list[str | None] = []
+    for index, (label, values) in enumerate(blocks):
+        label_text = (label or "").strip()
+        value_list = (
+            [str(v) for v in values]
+            if isinstance(values, (list, tuple))
+            else [str(values)]
+        )
+        value_list = [v.strip() for v in value_list if str(v).strip()]
+        if not label_text and not value_list:
+            continue
+        if index:
+            html_lines.append("")
+        if label_text:
+            html_lines.append(_esc(label_text))
+        for value in value_list:
+            html_lines.append(f"<b>{_esc(value)}</b>")
+    return compose_message(
+        icon=icon,
+        title=title,
+        html_lines=html_lines,
+        tutor_name=tutor_name,
+        lang=lang,
+        site_url=site_url,
+    )
+
+
 def lessons_screen(
     *,
     title: str,
@@ -372,7 +434,7 @@ def lessons_screen(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    """Two-line lesson cards: date · start–end / subject · status + bold price."""
+    """Two-line lesson cards: date · start–end / emoji status · subject · bold price."""
     parts_html: list[str | None] = []
     if page_label:
         parts_html.append(_esc(page_label))

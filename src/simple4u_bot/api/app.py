@@ -45,6 +45,8 @@ class PaymentBody(BaseModel):
     tutor_name: str | None = None
     rate_unit: str | None = None
     balance_after: float | None = None
+    paid_at: str | None = None
+    timezone: str | None = None
 
 
 class LessonStartBody(BaseModel):
@@ -187,6 +189,8 @@ def create_api(
             tutor_name=body.tutor_name,
             rate_unit=body.rate_unit,
             balance_after=body.balance_after,
+            paid_at=body.paid_at,
+            timezone_name=body.timezone,
         )
 
     @app.post("/v1/notify/lesson-start")

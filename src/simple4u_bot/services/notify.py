@@ -90,6 +90,8 @@ class NotifyService:
         tutor_name: str | None = None,
         rate_unit: str | None = None,
         balance_after: float | int | None = None,
+        paid_at: str | None = None,
+        timezone_name: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -99,6 +101,8 @@ class NotifyService:
                 tutor_name=self._tutor_of(student_id, tutor_name),
                 rate_unit=rate_unit,
                 balance_after=balance_after,
+                paid_at=paid_at,
+                timezone_name=timezone_name,
                 lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),

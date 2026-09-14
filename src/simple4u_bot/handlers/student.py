@@ -8,7 +8,13 @@ from simple4u_bot import keyboards
 from simple4u_bot.config import get_settings
 from simple4u_bot.services import messages
 from simple4u_bot.services.backend_client import BackendClient
-from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_label, t
+from simple4u_bot.services.i18n_bot import (
+    LANG_META,
+    normalize_lang,
+    status_emoji,
+    status_label,
+    t,
+)
 from simple4u_bot.services.store import Binding, BindingStore
 from simple4u_bot.services.home import build_home_message, format_amount
 from simple4u_bot.services.telegram_send import LINK_PREVIEW_OFF, reply_text
@@ -114,9 +120,10 @@ def _format_lesson_block(
         lang=lang,
     )
 
-    st = status_label(lang, str(item.get("status") or "scheduled")).capitalize()
+    raw_status = str(item.get("status") or "scheduled")
+    st = f"{status_emoji(raw_status)} {status_label(lang, raw_status).capitalize()}"
     subject_label = str(item.get("subject") or subject or "").strip()
-    meta_parts = [p for p in (subject_label, st) if p]
+    meta_parts = [p for p in (st, subject_label) if p]
     meta_line = " · ".join(meta_parts) if meta_parts else "—"
 
     price = item.get("price")
@@ -344,46 +351,60 @@ async def menu_text(
             await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
             return
         billing = data.get("billing_type") or "package"
-        key = "payment_postpaid" if billing == "postpaid" else "payment_package"
         is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
         balance_unit = t(
             lang, "balance_unit_lesson" if is_lesson_unit else "balance_unit_hour"
         )
-        last_topup_block = ""
-        last = data.get("last_topup") if isinstance(data.get("last_topup"), dict) else None
-        if billing != "postpaid" and last and last.get("at"):
-            money = float(last.get("amount_money") or 0)
-            cur = str(last.get("currency") or data.get("rate_currency") or "EUR")
-            amount_label = f"{format_amount(money)} {cur}" if money > 0 else "—"
-            last_topup_block = t(lang, "payment_last_topup").format(
-                units=format_amount(last.get("units") or 0),
-                balance_unit=balance_unit,
-                amount=amount_label,
-                date=format_day(
+        rate_label = (
+            f"{format_amount(data.get('rate_per_hour', 0) or 0)} "
+            f"{data.get('rate_currency', 'EUR')}"
+            f"{t(lang, 'rate_unit_lesson' if is_lesson_unit else 'rate_unit_hour')}"
+        )
+        blocks: list[tuple[str, str | list[str]]] = []
+        if billing == "postpaid":
+            blocks.extend(
+                [
+                    (
+                        t(lang, "payment_label_due"),
+                        f"{format_amount(data.get('unpaid_lessons_count', 0) or 0)} {balance_unit}",
+                    ),
+                    (
+                        t(lang, "payment_label_credit"),
+                        f"{format_amount(data.get('credit_limit', 0) or 0)} {balance_unit}",
+                    ),
+                ]
+            )
+        else:
+            blocks.append(
+                (
+                    t(lang, "payment_label_balance"),
+                    f"{format_amount(data.get('balance_lessons', 0) or 0)} {balance_unit}",
+                )
+            )
+            last = data.get("last_topup") if isinstance(data.get("last_topup"), dict) else None
+            if last and last.get("at"):
+                money = float(last.get("amount_money") or 0)
+                cur = str(last.get("currency") or data.get("rate_currency") or "EUR")
+                amount_label = f"{format_amount(money)} {cur}" if money > 0 else "—"
+                day = format_day(
                     last.get("at"),
                     timezone_name=str(data.get("timezone") or "UTC"),
                     lang=lang,
-                ),
-            )
-        body = t(lang, key).format(
-            topped=format_amount(data.get("lessons_topped_up", 0) or 0),
-            consumed=format_amount(data.get("units_consumed", 0) or 0),
-            completed=format_amount(data.get("lessons_completed", 0) or 0),
-            balance=format_amount(data.get("balance_lessons", 0) or 0),
-            unpaid=format_amount(data.get("unpaid_lessons_count", 0) or 0),
-            credit=format_amount(data.get("credit_limit", 0) or 0),
-            rate=format_amount(data.get("rate_per_hour", 0) or 0),
-            currency=data.get("rate_currency", "EUR"),
-            rate_unit=t(lang, "rate_unit_lesson" if is_lesson_unit else "rate_unit_hour"),
-            balance_unit=balance_unit,
-            last_topup=last_topup_block,
-        )
+                )
+                units = format_amount(last.get("units") or 0)
+                blocks.append(
+                    (
+                        t(lang, "payment_label_last_topup"),
+                        [f"📅 {day} · +{units} {balance_unit}", amount_label],
+                    )
+                )
+        blocks.append((t(lang, "payment_label_rate"), rate_label))
         await reply_text(
             message,
-            messages.section_screen(
+            messages.labeled_screen(
                 icon="💳",
                 title=t(lang, "payment_screen_title"),
-                body=body,
+                blocks=blocks,
                 tutor_name=_tutor_name(binding),
                 lang=lang,
                 site_url=_site_url(),

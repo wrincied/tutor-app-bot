@@ -84,6 +84,14 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "btn_lessons_next": "▶️",
         "payment_title": "Оплата",
         "payment_screen_title": "Оплата",
+        "payment_label_balance": "Остаток",
+        "payment_label_due": "К оплате",
+        "payment_label_completed": "Проведено",
+        "payment_label_consumed": "Списано",
+        "payment_label_last_topup": "Последнее пополнение",
+        "payment_label_credit": "Лимит долга",
+        "payment_label_rate": "Ставка",
+        "payment_completed_value": "{completed} занятий",
         "payment_package": (
             "Остаток\n"
             "{balance} {balance_unit}\n"
@@ -203,6 +211,14 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "btn_lessons_next": "▶️",
         "payment_title": "Payments",
         "payment_screen_title": "Payments",
+        "payment_label_balance": "Remaining",
+        "payment_label_due": "Due",
+        "payment_label_completed": "Completed",
+        "payment_label_consumed": "Used",
+        "payment_label_last_topup": "Last top-up",
+        "payment_label_credit": "Credit limit",
+        "payment_label_rate": "Rate",
+        "payment_completed_value": "{completed} lessons",
         "payment_package": (
             "Remaining\n"
             "{balance} {balance_unit}\n"
@@ -322,6 +338,14 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "btn_lessons_next": "▶️",
         "payment_title": "Zahlung",
         "payment_screen_title": "Zahlung",
+        "payment_label_balance": "Restguthaben",
+        "payment_label_due": "Offen",
+        "payment_label_completed": "Durchgeführt",
+        "payment_label_consumed": "Verbraucht",
+        "payment_label_last_topup": "Letzte Aufladung",
+        "payment_label_credit": "Limit",
+        "payment_label_rate": "Satz",
+        "payment_completed_value": "{completed} Stunden",
         "payment_package": (
             "Restguthaben\n"
             "{balance} {balance_unit}\n"
@@ -621,6 +645,23 @@ def balance_reason_label(lang: str | None, reason: str | None) -> str | None:
     return label
 
 
+STATUS_EMOJI: dict[str, str] = {
+    "scheduled": "📅",
+    "completed": "✅",
+    "missed": "⚠️",
+    "canceled": "❌",
+    "cancelled": "❌",
+}
+
+
+def status_emoji(status: str | None) -> str:
+    key = (status or "scheduled").strip().lower()
+    return STATUS_EMOJI.get(key, "📅")
+
+
 def status_label(lang: str | None, status: str) -> str:
     code = normalize_lang(lang)
-    return STATUS_LABEL[code].get(status) or status
+    key = (status or "").strip().lower()
+    if key == "cancelled":
+        key = "canceled"
+    return STATUS_LABEL[code].get(key) or status
