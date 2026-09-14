@@ -51,14 +51,14 @@ class BackendClient:
         self,
         student_id: str,
         *,
-        limit: int = 15,
         page: int = 1,
         days: int = 30,
+        page_days: int = 15,
     ) -> dict[str, Any] | None:
         return await self._request(
             "GET",
             f"/api/bot/students/{student_id}/lessons",
-            params={"limit": limit, "page": page, "days": days},
+            params={"page": page, "days": days, "page_days": page_days},
         )
 
     async def get_payment_summary(self, student_id: str) -> dict[str, Any] | None:

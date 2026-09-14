@@ -16,8 +16,8 @@ from simple4u_bot.services.time_format import format_range
 from simple4u_bot.services.vacation import vacation_body_from_profile
 
 router = Router(name="student")
-LESSONS_PAGE_SIZE = 3
 LESSONS_WINDOW_DAYS = 30
+LESSONS_PAGE_DAYS = 15  # half-month scroll slices
 
 
 def _site_url() -> str:
@@ -139,9 +139,9 @@ async def _send_lessons_page(
 ) -> None:
     data = await backend.get_lessons(
         binding.student_id,
-        limit=LESSONS_PAGE_SIZE,
         page=page,
         days=LESSONS_WINDOW_DAYS,
+        page_days=LESSONS_PAGE_DAYS,
     )
     if data is None:
         await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
