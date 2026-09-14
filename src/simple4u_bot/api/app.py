@@ -52,6 +52,7 @@ class LessonStartBody(BaseModel):
     time_label: str
     meeting_link: str | None = None
     tutor_name: str | None = None
+    subject: str | None = None
 
 
 class HomeworkBody(BaseModel):
@@ -65,6 +66,7 @@ class LessonMovedBody(BaseModel):
     new_time_label: str
     meeting_link: str | None = None
     tutor_name: str | None = None
+    subject: str | None = None
 
 
 class UnlinkBody(BaseModel):
@@ -190,6 +192,7 @@ def create_api(
             time_label=body.time_label,
             meeting_link=body.meeting_link,
             tutor_name=body.tutor_name,
+            subject=body.subject,
         )
 
     @app.post("/v1/notify/homework")
@@ -213,6 +216,7 @@ def create_api(
             new_time_label=body.new_time_label,
             meeting_link=body.meeting_link,
             tutor_name=body.tutor_name,
+            subject=body.subject,
         )
 
     @app.post("/v1/unlink")

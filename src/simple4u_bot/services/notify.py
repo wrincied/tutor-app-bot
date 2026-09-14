@@ -110,6 +110,7 @@ class NotifyService:
         time_label: str,
         meeting_link: str | None = None,
         tutor_name: str | None = None,
+        subject: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -118,6 +119,7 @@ class NotifyService:
                 time_label=time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                subject=subject,
                 lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),
@@ -156,6 +158,7 @@ class NotifyService:
         new_time_label: str,
         meeting_link: str | None = None,
         tutor_name: str | None = None,
+        subject: str | None = None,
     ) -> dict:
         return await self._send(
             student_id,
@@ -163,6 +166,7 @@ class NotifyService:
                 new_time_label=new_time_label,
                 meeting_link=meeting_link,
                 tutor_name=self._tutor_of(student_id, tutor_name),
+                subject=subject,
                 lang=self._lang_of(student_id),
                 site_url=self._site_url,
             ),

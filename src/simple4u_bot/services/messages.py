@@ -155,12 +155,16 @@ def lesson_start(
     time_label: str,
     meeting_link: str | None = None,
     tutor_name: str | None = None,
+    subject: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
     with_tutor = ""
     if (tutor_name or "").strip():
         with_tutor = t(lang, "notify_lesson_start_with_tutor").format(name=_esc(tutor_name))
+    subject_part = ""
+    if (subject or "").strip():
+        subject_part = t(lang, "notify_lesson_subject_part").format(subject=_esc(subject.strip()))
     body: list[str] = []
     if meeting_link:
         href = html.escape(meeting_link.strip(), quote=True)
@@ -169,6 +173,7 @@ def lesson_start(
         t(lang, "notify_lesson_start_title"),
         t(lang, "notify_lesson_start_body").format(
             minutes=minutes_before,
+            subject_part=subject_part,
             with_tutor=with_tutor,
             time=_esc(time_label),
         ),
@@ -200,12 +205,16 @@ def lesson_moved(
     new_time_label: str,
     meeting_link: str | None = None,
     tutor_name: str | None = None,
+    subject: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
     who = ""
     if (tutor_name or "").strip():
         who = t(lang, "notify_lesson_moved_who").format(name=_esc(tutor_name))
+    subject_part = ""
+    if (subject or "").strip():
+        subject_part = t(lang, "notify_lesson_subject_part").format(subject=_esc(subject.strip()))
     body: list[str] = []
     if meeting_link:
         href = html.escape(meeting_link.strip(), quote=True)
@@ -213,6 +222,7 @@ def lesson_moved(
     return branded(
         t(lang, "notify_lesson_moved_title"),
         t(lang, "notify_lesson_moved_body").format(
+            subject_part=subject_part,
             who=who,
             time=_esc(new_time_label),
         ),

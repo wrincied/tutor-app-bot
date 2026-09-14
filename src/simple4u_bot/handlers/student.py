@@ -100,7 +100,7 @@ def _match_action(text: str, lang: str) -> str | None:
     return None
 
 
-def _format_lesson_line(lang: str, item: dict, timezone: str) -> str:
+def _format_lesson_line(lang: str, item: dict, timezone: str, subject: str | None = None) -> str:
     raw = item.get("scheduledAt")
     when = "—"
     if raw:
@@ -116,7 +116,12 @@ def _format_lesson_line(lang: str, item: dict, timezone: str) -> str:
         price_label = f"{float(price):g} {currency}"
     except (TypeError, ValueError):
         price_label = f"— {currency}"
-    return f"• {when} · {st} · {price_label}"
+    parts = [when]
+    subject_label = str(item.get("subject") or subject or "").strip()
+    if subject_label:
+        parts.append(subject_label)
+    parts.extend([st, price_label])
+    return f"• {' · '.join(parts)}"
 
 
 async def _require_binding(message: Message, store: BindingStore) -> Binding | None:
@@ -282,8 +287,9 @@ async def menu_text(
             )
             return
         tz = str(data.get("timezone") or "UTC")
+        subject = str(data.get("subject") or "").strip() or None
         lesson_lines = [
-            _format_lesson_line(lang, item, tz)
+            _format_lesson_line(lang, item, tz, subject)
             for item in items
             if isinstance(item, dict)
         ]
