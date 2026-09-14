@@ -12,7 +12,7 @@ from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_lab
 from simple4u_bot.services.store import Binding, BindingStore
 from simple4u_bot.services.home import build_home_message, format_amount
 from simple4u_bot.services.telegram_send import LINK_PREVIEW_OFF, reply_text
-from simple4u_bot.services.time_format import format_range
+from simple4u_bot.services.time_format import format_day, format_range
 from simple4u_bot.services.vacation import vacation_body_from_profile
 
 router = Router(name="student")
@@ -346,6 +346,25 @@ async def menu_text(
         billing = data.get("billing_type") or "package"
         key = "payment_postpaid" if billing == "postpaid" else "payment_package"
         is_lesson_unit = data.get("rate_unit") == "lesson" or data.get("balance_unit") == "lesson"
+        balance_unit = t(
+            lang, "balance_unit_lesson" if is_lesson_unit else "balance_unit_hour"
+        )
+        last_topup_block = ""
+        last = data.get("last_topup") if isinstance(data.get("last_topup"), dict) else None
+        if billing != "postpaid" and last and last.get("at"):
+            money = float(last.get("amount_money") or 0)
+            cur = str(last.get("currency") or data.get("rate_currency") or "EUR")
+            amount_label = f"{format_amount(money)} {cur}" if money > 0 else "—"
+            last_topup_block = t(lang, "payment_last_topup").format(
+                units=format_amount(last.get("units") or 0),
+                balance_unit=balance_unit,
+                amount=amount_label,
+                date=format_day(
+                    last.get("at"),
+                    timezone_name=str(data.get("timezone") or "UTC"),
+                    lang=lang,
+                ),
+            )
         body = t(lang, key).format(
             topped=format_amount(data.get("lessons_topped_up", 0) or 0),
             consumed=format_amount(data.get("units_consumed", 0) or 0),
@@ -356,9 +375,8 @@ async def menu_text(
             rate=format_amount(data.get("rate_per_hour", 0) or 0),
             currency=data.get("rate_currency", "EUR"),
             rate_unit=t(lang, "rate_unit_lesson" if is_lesson_unit else "rate_unit_hour"),
-            balance_unit=t(
-                lang, "balance_unit_lesson" if is_lesson_unit else "balance_unit_hour"
-            ),
+            balance_unit=balance_unit,
+            last_topup=last_topup_block,
         )
         await reply_text(
             message,

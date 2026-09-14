@@ -111,6 +111,19 @@ def format_range(
     return f"{_date_part(local, lang)} · {_hm(local)}–{_hm(end)}"
 
 
+def format_day(
+    raw: object | None,
+    *,
+    timezone_name: str | None = "UTC",
+    lang: str | None = None,
+) -> str:
+    start = parse_iso(raw)
+    if start is None:
+        return str(raw or "—")[:10]
+    local = to_local(start, timezone_name)
+    return _date_part(local, lang)
+
+
 def format_clock(
     start_raw: object | None,
     *,

@@ -90,9 +90,15 @@ TEXTS: dict[Lang, dict[str, str]] = {
             "\n"
             "Проведено\n"
             "{completed} занятий · списано {consumed} {balance_unit}\n"
-            "\n"
+            "{last_topup}"
             "Ставка\n"
             "{rate} {currency}{rate_unit}"
+        ),
+        "payment_last_topup": (
+            "\n"
+            "Последнее пополнение\n"
+            "+{units} {balance_unit} · {amount}\n"
+            "{date}\n"
         ),
         "payment_postpaid": (
             "К оплате\n"
@@ -203,9 +209,15 @@ TEXTS: dict[Lang, dict[str, str]] = {
             "\n"
             "Completed\n"
             "{completed} lessons · used {consumed} {balance_unit}\n"
-            "\n"
+            "{last_topup}"
             "Rate\n"
             "{rate} {currency}{rate_unit}"
+        ),
+        "payment_last_topup": (
+            "\n"
+            "Last top-up\n"
+            "+{units} {balance_unit} · {amount}\n"
+            "{date}\n"
         ),
         "payment_postpaid": (
             "Due\n"
@@ -316,12 +328,15 @@ TEXTS: dict[Lang, dict[str, str]] = {
             "\n"
             "Durchgeführt\n"
             "{completed} Stunden · verbraucht {consumed} {balance_unit}\n"
-            "\n"
-            "Insgesamt gutgeschrieben\n"
-            "{topped} {balance_unit}\n"
-            "\n"
+            "{last_topup}"
             "Satz\n"
             "{rate} {currency}{rate_unit}"
+        ),
+        "payment_last_topup": (
+            "\n"
+            "Letzte Aufladung\n"
+            "+{units} {balance_unit} · {amount}\n"
+            "{date}\n"
         ),
         "payment_postpaid": (
             "Offen\n"
