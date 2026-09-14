@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
+from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
@@ -100,28 +101,47 @@ def _match_action(text: str, lang: str) -> str | None:
     return None
 
 
-def _format_lesson_line(lang: str, item: dict, timezone: str, subject: str | None = None) -> str:
+def _local_lesson_dt(raw: object, timezone_name: str) -> datetime | None:
+    try:
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=dt_timezone.utc)
+    try:
+        return dt.astimezone(ZoneInfo(timezone_name or "UTC"))
+    except Exception:
+        # Windows / slim images without tzdata: keep aware datetime as-is.
+        return dt.astimezone(dt_timezone.utc) if dt.tzinfo else dt
+
+
+def _format_lesson_block(
+    lang: str,
+    item: dict,
+    timezone_name: str,
+    subject: str | None = None,
+) -> tuple[str, str, str]:
     raw = item.get("scheduledAt")
-    when = "—"
-    if raw:
-        try:
-            dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-            when = dt.strftime("%d.%m.%Y %H:%M")
-        except ValueError:
-            when = str(raw)[:16]
-    st = status_label(lang, str(item.get("status") or "scheduled"))
+    local = _local_lesson_dt(raw, timezone_name) if raw else None
+    if local is not None:
+        when_line = f"{local.strftime('%d.%m.%Y')} · {local.strftime('%H:%M')}"
+    elif raw:
+        when_line = str(raw)[:16]
+    else:
+        when_line = "—"
+
+    st = status_label(lang, str(item.get("status") or "scheduled")).capitalize()
+    subject_label = str(item.get("subject") or subject or "").strip()
+    meta_parts = [p for p in (subject_label, st) if p]
+    meta_line = " · ".join(meta_parts) if meta_parts else "—"
+
     price = item.get("price")
     currency = item.get("currency") or "EUR"
     try:
         price_label = f"{float(price):g} {currency}"
     except (TypeError, ValueError):
         price_label = f"— {currency}"
-    parts = [when]
-    subject_label = str(item.get("subject") or subject or "").strip()
-    if subject_label:
-        parts.append(subject_label)
-    parts.extend([st, price_label])
-    return f"• {' · '.join(parts)}"
+    return when_line, meta_line, price_label
 
 
 async def _require_binding(message: Message, store: BindingStore) -> Binding | None:
@@ -272,34 +292,19 @@ async def menu_text(
             await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
             return
         items = data.get("items") or []
-        if not items:
-            await reply_text(
-                message,
-                messages.section_screen(
-                    icon="📚",
-                    title=t(lang, "lessons_screen_title"),
-                    body=t(lang, "lessons_empty"),
-                    tutor_name=_tutor_name(binding),
-                    lang=lang,
-                    site_url=_site_url(),
-                ),
-                reply_markup=keyboards.main_menu(lang),
-            )
-            return
         tz = str(data.get("timezone") or "UTC")
         subject = str(data.get("subject") or "").strip() or None
-        lesson_lines = [
-            _format_lesson_line(lang, item, tz, subject)
+        blocks = [
+            _format_lesson_block(lang, item, tz, subject)
             for item in items
             if isinstance(item, dict)
         ]
-        body = "\n".join([t(lang, "lessons_title"), ""] + lesson_lines)
         await reply_text(
             message,
-            messages.section_screen(
-                icon="📚",
+            messages.lessons_screen(
                 title=t(lang, "lessons_screen_title"),
-                body=body,
+                blocks=blocks,
+                empty_text=t(lang, "lessons_empty"),
                 tutor_name=_tutor_name(binding),
                 lang=lang,
                 site_url=_site_url(),

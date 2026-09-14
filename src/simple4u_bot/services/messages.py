@@ -242,12 +242,52 @@ def section_screen(
     site_url: str | None = None,
 ) -> str:
     parts: list[str] = [f"<b>{icon} {_esc(title)}</b>", ""]
-    text = (body or "").strip()
+    text = (body or "").rstrip()
     if text:
-        parts.extend(_esc(line) for line in text.splitlines() if line.strip())
+        for line in text.splitlines():
+            if line.strip():
+                parts.append(_esc(line))
+            else:
+                parts.append("")
     tutor = _tutor_line(tutor_name, lang)
     if tutor:
+        if parts and parts[-1] != "":
+            parts.append("")
         parts.append(tutor)
+    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
+
+
+def lessons_screen(
+    *,
+    title: str,
+    blocks: list[tuple[str, str, str]],
+    empty_text: str | None = None,
+    tutor_name: str | None = None,
+    lang: str | None = None,
+    site_url: str | None = None,
+) -> str:
+    """Two-line lesson cards: date · time / subject · status + bold price."""
+    parts: list[str] = [f"<b>📚 {_esc(title)}</b>", ""]
+    if not blocks:
+        if empty_text:
+            parts.append(_esc(empty_text))
+    else:
+        for index, (when_line, meta_line, price_label) in enumerate(blocks):
+            if index:
+                parts.append("")
+            parts.append(_esc(when_line))
+            meta = _esc(meta_line)
+            price = _esc(price_label)
+            if meta and price:
+                # Telegram collapses regular spaces; nbsp keeps price visually apart.
+                parts.append(f"{meta}{'\u00a0' * 6}<b>{price}</b>")
+            elif meta:
+                parts.append(meta)
+            elif price:
+                parts.append(f"<b>{price}</b>")
+    tutor = _tutor_line(tutor_name, lang)
+    if tutor:
+        parts.extend(["", tutor])
     return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
 
 
