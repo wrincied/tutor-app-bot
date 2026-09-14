@@ -47,11 +47,18 @@ class BackendClient:
     async def notify_unlinked(self, payload: dict[str, Any]) -> dict[str, Any] | None:
         return await self._request("POST", "/api/bot/telegram-unlinked", json=payload)
 
-    async def get_lessons(self, student_id: str, *, limit: int = 15) -> dict[str, Any] | None:
+    async def get_lessons(
+        self,
+        student_id: str,
+        *,
+        limit: int = 15,
+        page: int = 1,
+        days: int = 30,
+    ) -> dict[str, Any] | None:
         return await self._request(
             "GET",
             f"/api/bot/students/{student_id}/lessons",
-            params={"limit": limit},
+            params={"limit": limit, "page": page, "days": days},
         )
 
     async def get_payment_summary(self, student_id: str) -> dict[str, Any] | None:

@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import html
+from collections.abc import Sequence
 
 from simple4u_bot.services.i18n_bot import balance_reason_label, t, unit_word
+from simple4u_bot.services.time_format import (
+    format_moved,
+    format_new_clock_only,
+    format_range,
+)
 
 DEFAULT_SITE_URL = "https://simple4u.at"
 
@@ -25,30 +31,78 @@ def with_site_footer(text: str, *, lang: str | None = None, site_url: str | None
     return (text or "").rstrip() + _footer(lang=lang, site_url=site_url)
 
 
-def branded(
-    title: str,
-    subtitle: str,
-    *body_lines: str,
-    lang: str | None = None,
-    site_url: str | None = None,
-) -> str:
-    """Title (bold) + subtitle + optional body + © Simple4U site link."""
-    parts: list[str] = [f"<b>{_esc(title)}</b>"]
-    sub = (subtitle or "").strip()
-    if sub:
-        parts.append(_esc(sub))
-    for line in body_lines:
-        text = (line or "").strip()
-        if text:
-            parts.append(text)
-    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
-
-
 def _tutor_line(tutor_name: str | None, lang: str | None = None) -> str:
     name = (tutor_name or "").strip()
     if not name:
         return ""
     return t(lang, "tutor_line").format(name=_esc(name))
+
+
+def compose_message(
+    *,
+    icon: str,
+    title: str,
+    body_lines: Sequence[str | None] = (),
+    html_lines: Sequence[str | None] = (),
+    tutor_name: str | None = None,
+    lang: str | None = None,
+    site_url: str | None = None,
+) -> str:
+    """
+    Unified shell:
+      [ICON] Title
+
+      primary facts...
+
+      Tutor: Name
+
+      © Simple4U
+    """
+    head = f"{(icon or '').strip()} {_esc(title)}".strip()
+    parts: list[str] = [f"<b>{head}</b>", ""]
+    for raw in body_lines:
+        if raw is None:
+            continue
+        text = str(raw).rstrip()
+        if not text:
+            parts.append("")
+            continue
+        parts.append(_esc(text))
+    for raw in html_lines:
+        if raw is None:
+            continue
+        text = str(raw).rstrip()
+        if text:
+            parts.append(text)
+    tutor = _tutor_line(tutor_name, lang)
+    if tutor:
+        if parts and parts[-1] != "":
+            parts.append("")
+        parts.append(tutor)
+    # Drop trailing blank lines before footer
+    while len(parts) > 1 and parts[-1] == "":
+        parts.pop()
+    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
+
+
+def branded(
+    title: str,
+    subtitle: str,
+    *body_lines: str,
+    icon: str = "",
+    lang: str | None = None,
+    site_url: str | None = None,
+) -> str:
+    """Legacy helper → unified shell (title may already include emoji)."""
+    lines = [subtitle, *body_lines]
+    # If caller put tutor HTML-escaped line in body, keep it as body; prefer compose.
+    return compose_message(
+        icon=icon,
+        title=title,
+        body_lines=[ln for ln in lines if (ln or "").strip()],
+        lang=lang,
+        site_url=site_url,
+    )
 
 
 def _fmt_units(value: float | int) -> str:
@@ -69,50 +123,75 @@ def balance(
     site_url: str | None = None,
 ) -> str:
     unit = unit_word(lang, rate_unit)
-    tutor = _tutor_line(tutor_name, lang)
     before = lessons_before
-    reason_key = str(reason or '').strip().lower()
-    if before is not None and float(before) != float(lessons_left):
+    reason_key = str(reason or "").strip().lower()
+    left = float(lessons_left)
+
+    if before is not None and float(before) != left:
         reason_label = balance_reason_label(lang, reason)
-        reason_line = (
-            t(lang, 'notify_balance_reason').format(reason=_esc(reason_label))
-            if reason_label
-            else ''
-        )
-        return branded(
-            t(lang, 'notify_balance_changed_title'),
-            t(lang, 'notify_balance_changed_delta').format(
+        lines = [
+            t(lang, "notify_balance_changed_delta").format(
                 before=_fmt_units(before),
                 after=_fmt_units(lessons_left),
                 unit=unit,
             ),
-            t(lang, 'notify_balance_remaining').format(
+        ]
+        if reason_label:
+            lines.append(t(lang, "notify_balance_reason").format(reason=reason_label))
+        lines.append("")
+        lines.append(
+            t(lang, "notify_balance_remaining").format(
                 count=_fmt_units(lessons_left),
                 unit=unit,
             ),
-            reason_line,
-            tutor,
+        )
+        return compose_message(
+            icon="💳",
+            title=t(lang, "notify_balance_changed_title"),
+            body_lines=lines,
+            tutor_name=tutor_name,
             lang=lang,
             site_url=site_url,
         )
-    if reason_key == 'low_balance':
-        return branded(
-            t(lang, 'notify_balance_low_title'),
-            t(lang, 'notify_balance_low_body').format(
+
+    if reason_key == "low_balance":
+        if left <= 0:
+            return compose_message(
+                icon="⚠️",
+                title=t(lang, "notify_balance_empty_title"),
+                body_lines=[
+                    t(lang, "notify_balance_empty_body"),
+                    t(lang, "notify_balance_empty_hint"),
+                ],
+                tutor_name=tutor_name,
+                lang=lang,
+                site_url=site_url,
+            )
+        return compose_message(
+            icon="⚠️",
+            title=t(lang, "notify_balance_low_title"),
+            body_lines=[
+                t(lang, "notify_balance_low_lead"),
+                t(lang, "notify_balance_low_body").format(
+                    count=_fmt_units(lessons_left),
+                    unit=unit,
+                ),
+            ],
+            tutor_name=tutor_name,
+            lang=lang,
+            site_url=site_url,
+        )
+
+    return compose_message(
+        icon="💳",
+        title=t(lang, "notify_balance_package_title"),
+        body_lines=[
+            t(lang, "notify_balance_package_body").format(
                 count=_fmt_units(lessons_left),
                 unit=unit,
             ),
-            tutor,
-            lang=lang,
-            site_url=site_url,
-        )
-    return branded(
-        t(lang, 'notify_balance_package_title'),
-        t(lang, 'notify_balance_package_body').format(
-            count=_fmt_units(lessons_left),
-            unit=unit,
-        ),
-        tutor,
+        ],
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -124,11 +203,11 @@ def payment(
     lessons_added: float | int,
     tutor_name: str | None = None,
     rate_unit: str | None = None,
+    balance_after: float | int | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
     unit = unit_word(lang, rate_unit)
-    tutor = _tutor_line(tutor_name, lang)
     delta = float(lessons_added)
     if delta > 0:
         delta_label = f"+{_fmt_units(delta)} {unit}"
@@ -136,14 +215,21 @@ def payment(
         delta_label = f"{_fmt_units(delta)} {unit}"
     else:
         delta_label = f"0 {unit}"
-    return branded(
-        t(lang, "notify_payment_title"),
-        t(lang, "notify_payment_body").format(
-            amount=_esc(amount_label),
-            delta=delta_label,
-            thanks=t(lang, "notify_payment_thanks"),
-        ),
-        tutor,
+    amount = (amount_label or "").strip()
+    headline = f"{delta_label} · {amount}" if amount else delta_label
+    lines = [headline, ""]
+    if balance_after is not None:
+        lines.append(
+            t(lang, "notify_payment_new_balance").format(
+                count=_fmt_units(balance_after),
+                unit=unit,
+            ),
+        )
+    return compose_message(
+        icon="✅",
+        title=t(lang, "notify_payment_title"),
+        body_lines=lines,
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -152,32 +238,43 @@ def payment(
 def lesson_start(
     *,
     minutes_before: int,
-    time_label: str,
+    time_label: str | None = None,
+    scheduled_at: str | None = None,
+    duration_minutes: int | float | None = 60,
+    timezone_name: str | None = None,
     meeting_link: str | None = None,
     tutor_name: str | None = None,
     subject: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    with_tutor = ""
-    if (tutor_name or "").strip():
-        with_tutor = t(lang, "notify_lesson_start_with_tutor").format(name=_esc(tutor_name))
-    subject_part = ""
+    when = (
+        format_range(
+            scheduled_at,
+            duration_minutes=duration_minutes,
+            timezone_name=timezone_name,
+            lang=lang,
+        )
+        if scheduled_at
+        else (time_label or "—")
+    )
+    lines: list[str | None] = [
+        t(lang, "notify_lesson_start_body").format(minutes=minutes_before),
+        "",
+        when,
+    ]
     if (subject or "").strip():
-        subject_part = t(lang, "notify_lesson_subject_part").format(subject=_esc(subject.strip()))
-    body: list[str] = []
+        lines.append(subject.strip())
+    html_lines: list[str | None] = []
     if meeting_link:
         href = html.escape(meeting_link.strip(), quote=True)
-        body.append(f'<a href="{href}">{_esc(t(lang, "notify_meeting_link"))}</a>')
-    return branded(
-        t(lang, "notify_lesson_start_title"),
-        t(lang, "notify_lesson_start_body").format(
-            minutes=minutes_before,
-            subject_part=subject_part,
-            with_tutor=with_tutor,
-            time=_esc(time_label),
-        ),
-        *body,
+        html_lines.append(f'<a href="{href}">{_esc(t(lang, "notify_meeting_link"))}</a>')
+    return compose_message(
+        icon="⏰",
+        title=t(lang, "notify_lesson_start_title"),
+        body_lines=lines,
+        html_lines=html_lines,
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -190,11 +287,11 @@ def homework(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    tutor = _tutor_line(tutor_name, lang)
-    return branded(
-        t(lang, "notify_homework_title"),
-        _esc(text),
-        tutor,
+    return compose_message(
+        icon="📝",
+        title=t(lang, "notify_homework_title"),
+        body_lines=[text],
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -202,31 +299,44 @@ def homework(
 
 def lesson_moved(
     *,
-    new_time_label: str,
+    new_time_label: str | None = None,
+    old_scheduled_at: str | None = None,
+    new_scheduled_at: str | None = None,
+    timezone_name: str | None = None,
     meeting_link: str | None = None,
     tutor_name: str | None = None,
     subject: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    who = ""
-    if (tutor_name or "").strip():
-        who = t(lang, "notify_lesson_moved_who").format(name=_esc(tutor_name))
-    subject_part = ""
+    if old_scheduled_at or new_scheduled_at:
+        moved = format_moved(
+            old_scheduled_at,
+            new_scheduled_at or new_time_label,
+            timezone_name=timezone_name,
+            lang=lang,
+        )
+        new_clock = format_new_clock_only(new_scheduled_at, timezone_name=timezone_name)
+    else:
+        moved = new_time_label or "—"
+        new_clock = new_time_label or "—"
+    lines: list[str | None] = [
+        moved,
+        "",
+        t(lang, "notify_lesson_moved_body").format(time=new_clock),
+    ]
     if (subject or "").strip():
-        subject_part = t(lang, "notify_lesson_subject_part").format(subject=_esc(subject.strip()))
-    body: list[str] = []
+        lines.insert(1, subject.strip())
+    html_lines: list[str | None] = []
     if meeting_link:
         href = html.escape(meeting_link.strip(), quote=True)
-        body.append(f'<a href="{href}">{_esc(t(lang, "notify_meeting_link"))}</a>')
-    return branded(
-        t(lang, "notify_lesson_moved_title"),
-        t(lang, "notify_lesson_moved_body").format(
-            subject_part=subject_part,
-            who=who,
-            time=_esc(new_time_label),
-        ),
-        *body,
+        html_lines.append(f'<a href="{href}">{_esc(t(lang, "notify_meeting_link"))}</a>')
+    return compose_message(
+        icon="📅",
+        title=t(lang, "notify_lesson_moved_title"),
+        body_lines=lines,
+        html_lines=html_lines,
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -241,20 +351,15 @@ def section_screen(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    parts: list[str] = [f"<b>{icon} {_esc(title)}</b>", ""]
-    text = (body or "").rstrip()
-    if text:
-        for line in text.splitlines():
-            if line.strip():
-                parts.append(_esc(line))
-            else:
-                parts.append("")
-    tutor = _tutor_line(tutor_name, lang)
-    if tutor:
-        if parts and parts[-1] != "":
-            parts.append("")
-        parts.append(tutor)
-    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
+    lines = (body or "").splitlines()
+    return compose_message(
+        icon=icon,
+        title=title,
+        body_lines=lines if any(ln.strip() for ln in lines) else [body],
+        tutor_name=tutor_name,
+        lang=lang,
+        site_url=site_url,
+    )
 
 
 def lessons_screen(
@@ -262,33 +367,40 @@ def lessons_screen(
     title: str,
     blocks: list[tuple[str, str, str]],
     empty_text: str | None = None,
+    page_label: str | None = None,
     tutor_name: str | None = None,
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    """Two-line lesson cards: date · time / subject · status + bold price."""
-    parts: list[str] = [f"<b>📚 {_esc(title)}</b>", ""]
+    """Two-line lesson cards: date · start–end / subject · status + bold price."""
+    parts_html: list[str | None] = []
+    if page_label:
+        parts_html.append(_esc(page_label))
+        parts_html.append("")
     if not blocks:
         if empty_text:
-            parts.append(_esc(empty_text))
+            parts_html.append(_esc(empty_text))
     else:
         for index, (when_line, meta_line, price_label) in enumerate(blocks):
             if index:
-                parts.append("")
-            parts.append(_esc(when_line))
+                parts_html.append("")
+            parts_html.append(_esc(when_line))
             meta = _esc(meta_line)
             price = _esc(price_label)
             if meta and price:
-                # Telegram collapses regular spaces; nbsp keeps price visually apart.
-                parts.append(f"{meta}{'\u00a0' * 6}<b>{price}</b>")
+                parts_html.append(f"{meta}{'\u00a0' * 6}<b>{price}</b>")
             elif meta:
-                parts.append(meta)
+                parts_html.append(meta)
             elif price:
-                parts.append(f"<b>{price}</b>")
-    tutor = _tutor_line(tutor_name, lang)
-    if tutor:
-        parts.extend(["", tutor])
-    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
+                parts_html.append(f"<b>{price}</b>")
+    return compose_message(
+        icon="📚",
+        title=title,
+        html_lines=parts_html,
+        tutor_name=tutor_name,
+        lang=lang,
+        site_url=site_url,
+    )
 
 
 def home_dashboard(
@@ -300,14 +412,20 @@ def home_dashboard(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    parts: list[str] = [f"<b>{_esc(title)}</b>", "", _esc(greeting)]
+    lines: list[str | None] = [greeting, ""]
     for line in bullets:
         text = (line or "").strip()
         if text:
-            parts.append(f"• {_esc(text)}")
+            lines.append(text)
     if announcement:
-        parts.extend(["", _esc(announcement)])
-    return "\n".join(parts) + _footer(lang=lang, site_url=site_url)
+        lines.extend(["", announcement])
+    return compose_message(
+        icon="🏠",
+        title=title,
+        body_lines=lines,
+        lang=lang,
+        site_url=site_url,
+    )
 
 
 def vacation_notice(
@@ -318,11 +436,11 @@ def vacation_notice(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    tutor = _tutor_line(tutor_name, lang)
-    return branded(
-        title,
-        _esc(text),
-        tutor,
+    return compose_message(
+        icon="🌴",
+        title=title,
+        body_lines=[text],
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
@@ -336,28 +454,32 @@ def welcome_linked(
     site_url: str | None = None,
 ) -> str:
     hello = (
-        t(lang, "welcome_linked_hello").format(name=_esc(student_name))
+        t(lang, "welcome_linked_hello").format(name=student_name)
         if student_name
         else t(lang, "welcome_linked_hello_anon")
     )
-    tutor = ""
-    if (tutor_name or "").strip():
-        tutor = t(lang, "welcome_linked_tutor").format(name=f"<b>{_esc(tutor_name)}</b>")
-    return branded(
-        t(lang, "brand_title"),
+    lines = [
         t(lang, "welcome_linked_subtitle").format(hello=hello),
-        tutor,
         t(lang, "welcome_linked_body"),
+    ]
+    return compose_message(
+        icon="✨",
+        title=t(lang, "brand_title"),
+        body_lines=lines,
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
 
 
 def welcome_need_link(*, lang: str | None = None, site_url: str | None = None) -> str:
-    return branded(
-        t(lang, "brand_title"),
-        t(lang, "welcome_need_link_hello"),
-        t(lang, "welcome_need_link_body"),
+    return compose_message(
+        icon="✨",
+        title=t(lang, "brand_title"),
+        body_lines=[
+            t(lang, "welcome_need_link_hello"),
+            t(lang, "welcome_need_link_body"),
+        ],
         lang=lang,
         site_url=site_url,
     )
@@ -369,12 +491,12 @@ def unlinked_by_tutor(
     lang: str | None = None,
     site_url: str | None = None,
 ) -> str:
-    tutor = _tutor_line(tutor_name, lang)
-    return branded(
-        t(lang, "brand_title"),
-        t(lang, "unlinked_by_tutor_title"),
-        t(lang, "unlinked_by_tutor_body"),
-        tutor,
+    return compose_message(
+        icon="🔕",
+        title=t(lang, "unlinked_by_tutor_title"),
+        body_lines=[t(lang, "unlinked_by_tutor_body")],
+        tutor_name=tutor_name,
         lang=lang,
         site_url=site_url,
     )
+

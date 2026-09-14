@@ -44,12 +44,16 @@ class PaymentBody(BaseModel):
     lessons_added: float = 0
     tutor_name: str | None = None
     rate_unit: str | None = None
+    balance_after: float | None = None
 
 
 class LessonStartBody(BaseModel):
     student_id: str
     minutes_before: int = Field(default=30, ge=1)
-    time_label: str
+    time_label: str | None = None
+    scheduled_at: str | None = None
+    duration_minutes: int | float | None = 60
+    timezone: str | None = None
     meeting_link: str | None = None
     tutor_name: str | None = None
     subject: str | None = None
@@ -63,7 +67,10 @@ class HomeworkBody(BaseModel):
 
 class LessonMovedBody(BaseModel):
     student_id: str
-    new_time_label: str
+    new_time_label: str | None = None
+    old_scheduled_at: str | None = None
+    new_scheduled_at: str | None = None
+    timezone: str | None = None
     meeting_link: str | None = None
     tutor_name: str | None = None
     subject: str | None = None
@@ -179,6 +186,7 @@ def create_api(
             lessons_added=body.lessons_added,
             tutor_name=body.tutor_name,
             rate_unit=body.rate_unit,
+            balance_after=body.balance_after,
         )
 
     @app.post("/v1/notify/lesson-start")
@@ -190,6 +198,9 @@ def create_api(
             body.student_id,
             minutes_before=body.minutes_before,
             time_label=body.time_label,
+            scheduled_at=body.scheduled_at,
+            duration_minutes=body.duration_minutes,
+            timezone_name=body.timezone,
             meeting_link=body.meeting_link,
             tutor_name=body.tutor_name,
             subject=body.subject,
@@ -214,6 +225,9 @@ def create_api(
         return await notify.lesson_moved(
             body.student_id,
             new_time_label=body.new_time_label,
+            old_scheduled_at=body.old_scheduled_at,
+            new_scheduled_at=body.new_scheduled_at,
+            timezone_name=body.timezone,
             meeting_link=body.meeting_link,
             tutor_name=body.tutor_name,
             subject=body.subject,

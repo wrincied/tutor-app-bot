@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone as dt_timezone
-from zoneinfo import ZoneInfo
-
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import CallbackQuery, Message
@@ -14,10 +11,13 @@ from simple4u_bot.services.backend_client import BackendClient
 from simple4u_bot.services.i18n_bot import LANG_META, normalize_lang, status_label, t
 from simple4u_bot.services.store import Binding, BindingStore
 from simple4u_bot.services.home import build_home_message, format_amount
-from simple4u_bot.services.telegram_send import reply_text
+from simple4u_bot.services.telegram_send import LINK_PREVIEW_OFF, reply_text
+from simple4u_bot.services.time_format import format_range
 from simple4u_bot.services.vacation import vacation_body_from_profile
 
 router = Router(name="student")
+LESSONS_PAGE_SIZE = 15
+LESSONS_WINDOW_DAYS = 30
 
 
 def _site_url() -> str:
@@ -101,34 +101,18 @@ def _match_action(text: str, lang: str) -> str | None:
     return None
 
 
-def _local_lesson_dt(raw: object, timezone_name: str) -> datetime | None:
-    try:
-        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=dt_timezone.utc)
-    try:
-        return dt.astimezone(ZoneInfo(timezone_name or "UTC"))
-    except Exception:
-        # Windows / slim images without tzdata: keep aware datetime as-is.
-        return dt.astimezone(dt_timezone.utc) if dt.tzinfo else dt
-
-
 def _format_lesson_block(
     lang: str,
     item: dict,
     timezone_name: str,
     subject: str | None = None,
 ) -> tuple[str, str, str]:
-    raw = item.get("scheduledAt")
-    local = _local_lesson_dt(raw, timezone_name) if raw else None
-    if local is not None:
-        when_line = f"{local.strftime('%d.%m.%Y')} · {local.strftime('%H:%M')}"
-    elif raw:
-        when_line = str(raw)[:16]
-    else:
-        when_line = "—"
+    when_line = format_range(
+        item.get("scheduledAt"),
+        duration_minutes=item.get("duration_minutes") or 60,
+        timezone_name=timezone_name,
+        lang=lang,
+    )
 
     st = status_label(lang, str(item.get("status") or "scheduled")).capitalize()
     subject_label = str(item.get("subject") or subject or "").strip()
@@ -142,6 +126,64 @@ def _format_lesson_block(
     except (TypeError, ValueError):
         price_label = f"— {currency}"
     return when_line, meta_line, price_label
+
+
+async def _send_lessons_page(
+    message: Message,
+    *,
+    binding: Binding,
+    backend: BackendClient,
+    lang: str,
+    page: int = 1,
+    edit: bool = False,
+) -> None:
+    data = await backend.get_lessons(
+        binding.student_id,
+        limit=LESSONS_PAGE_SIZE,
+        page=page,
+        days=LESSONS_WINDOW_DAYS,
+    )
+    if data is None:
+        await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
+        return
+    items = data.get("items") or []
+    tz = str(data.get("timezone") or "UTC")
+    subject = str(data.get("subject") or "").strip() or None
+    cur_page = int(data.get("page") or page or 1)
+    pages = int(data.get("pages") or 1)
+    blocks = [
+        _format_lesson_block(lang, item, tz, subject)
+        for item in items
+        if isinstance(item, dict)
+    ]
+    page_label = None
+    if pages > 1:
+        page_label = t(lang, "lessons_page").format(page=cur_page, pages=pages)
+    text = messages.lessons_screen(
+        title=t(lang, "lessons_screen_title"),
+        blocks=blocks,
+        empty_text=t(lang, "lessons_empty"),
+        page_label=page_label,
+        tutor_name=_tutor_name(binding),
+        lang=lang,
+        site_url=_site_url(),
+    )
+    pager = keyboards.lessons_pager(lang, page=cur_page, pages=pages)
+    if edit:
+        try:
+            await message.edit_text(
+                text,
+                reply_markup=pager,
+                link_preview_options=LINK_PREVIEW_OFF,
+            )
+            return
+        except Exception:
+            pass
+    await reply_text(
+        message,
+        text,
+        reply_markup=pager or keyboards.main_menu(lang),
+    )
 
 
 async def _require_binding(message: Message, store: BindingStore) -> Binding | None:
@@ -287,29 +329,12 @@ async def menu_text(
         return
 
     if action == "lessons":
-        data = await backend.get_lessons(binding.student_id)
-        if data is None:
-            await reply_text(message, t(lang, "error"), reply_markup=keyboards.main_menu(lang))
-            return
-        items = data.get("items") or []
-        tz = str(data.get("timezone") or "UTC")
-        subject = str(data.get("subject") or "").strip() or None
-        blocks = [
-            _format_lesson_block(lang, item, tz, subject)
-            for item in items
-            if isinstance(item, dict)
-        ]
-        await reply_text(
+        await _send_lessons_page(
             message,
-            messages.lessons_screen(
-                title=t(lang, "lessons_screen_title"),
-                blocks=blocks,
-                empty_text=t(lang, "lessons_empty"),
-                tutor_name=_tutor_name(binding),
-                lang=lang,
-                site_url=_site_url(),
-            ),
-            reply_markup=keyboards.main_menu(lang),
+            binding=binding,
+            backend=backend,
+            lang=lang,
+            page=1,
         )
         return
 
@@ -408,6 +433,36 @@ async def on_home_action(
             t(lang, "unlink_confirm"),
             reply_markup=keyboards.unlink_confirm_inline(lang),
         )
+
+
+@router.callback_query(F.data.startswith("lessons:page:"))
+async def on_lessons_page(
+    query: CallbackQuery,
+    store: BindingStore,
+    backend: BackendClient,
+) -> None:
+    if query.message is None or not query.data:
+        await query.answer()
+        return
+    binding = store.get_by_chat(query.message.chat.id)
+    if binding is None:
+        await query.answer()
+        await reply_text(query.message, t("de", "not_linked"))
+        return
+    lang = _lang_of(binding)
+    try:
+        page = int(query.data.rsplit(":", 1)[-1])
+    except ValueError:
+        page = 1
+    await query.answer()
+    await _send_lessons_page(
+        query.message,
+        binding=binding,
+        backend=backend,
+        lang=lang,
+        page=max(1, page),
+        edit=True,
+    )
 
 
 @router.callback_query(F.data.startswith("lang:"))
