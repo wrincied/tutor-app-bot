@@ -71,21 +71,22 @@ def balance(
     unit = unit_word(lang, rate_unit)
     tutor = _tutor_line(tutor_name, lang)
     before = lessons_before
+    reason_key = str(reason or '').strip().lower()
     if before is not None and float(before) != float(lessons_left):
         reason_label = balance_reason_label(lang, reason)
         reason_line = (
-            t(lang, "notify_balance_reason").format(reason=_esc(reason_label))
+            t(lang, 'notify_balance_reason').format(reason=_esc(reason_label))
             if reason_label
-            else ""
+            else ''
         )
         return branded(
-            t(lang, "notify_balance_changed_title"),
-            t(lang, "notify_balance_changed_delta").format(
+            t(lang, 'notify_balance_changed_title'),
+            t(lang, 'notify_balance_changed_delta').format(
                 before=_fmt_units(before),
                 after=_fmt_units(lessons_left),
                 unit=unit,
             ),
-            t(lang, "notify_balance_remaining").format(
+            t(lang, 'notify_balance_remaining').format(
                 count=_fmt_units(lessons_left),
                 unit=unit,
             ),
@@ -94,9 +95,20 @@ def balance(
             lang=lang,
             site_url=site_url,
         )
+    if reason_key == 'low_balance':
+        return branded(
+            t(lang, 'notify_balance_low_title'),
+            t(lang, 'notify_balance_low_body').format(
+                count=_fmt_units(lessons_left),
+                unit=unit,
+            ),
+            tutor,
+            lang=lang,
+            site_url=site_url,
+        )
     return branded(
-        t(lang, "notify_balance_package_title"),
-        t(lang, "notify_balance_package_body").format(
+        t(lang, 'notify_balance_package_title'),
+        t(lang, 'notify_balance_package_body').format(
             count=_fmt_units(lessons_left),
             unit=unit,
         ),

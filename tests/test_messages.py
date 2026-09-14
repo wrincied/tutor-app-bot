@@ -1,15 +1,29 @@
 from simple4u_bot.services import messages
 
 
-def test_balance_message() -> None:
+def test_balance_message_defaults_to_english() -> None:
     text = messages.balance(lessons_left=2)
-    assert "Баланс пакета" in text
+    assert "Package balance" in text
     assert "2" in text
     assert "© Simple4U" in text
     assert "simple4u.at" in text
-    assert "занятий" in messages.balance(lessons_left=2, rate_unit="lesson")
-    assert "Репетитор: Анна" in messages.balance(lessons_left=2, tutor_name="Анна")
-    assert "1.5 ч" in messages.balance(lessons_left=1.5, rate_unit="hour")
+    assert "lessons" in messages.balance(lessons_left=2, rate_unit="lesson")
+    assert "Tutor: Anna" in messages.balance(lessons_left=2, tutor_name="Anna")
+    assert "1.5 h" in messages.balance(lessons_left=1.5, rate_unit="hour")
+
+
+def test_balance_message_russian() -> None:
+    text = messages.balance(lessons_left=2, lang="ru")
+    assert "Баланс пакета" in text
+    assert "занятий" in messages.balance(lessons_left=2, rate_unit="lesson", lang="ru")
+
+
+def test_low_balance_message() -> None:
+    text = messages.balance(lessons_left=1, reason="low_balance", rate_unit="lesson")
+    assert "Low package balance" in text
+    assert "Only 1 lessons left" in text
+    de = messages.balance(lessons_left=1, reason="low_balance", lang="de", rate_unit="lesson")
+    assert "Wenig Rest im Abo" in de
 
 
 def test_balance_adjust_message() -> None:
@@ -19,6 +33,7 @@ def test_balance_adjust_message() -> None:
         reason="bonus",
         tutor_name="Анна",
         rate_unit="lesson",
+        lang="ru",
     )
     assert "Баланс изменён" in text
     assert "8 → 5" in text
@@ -28,13 +43,19 @@ def test_balance_adjust_message() -> None:
 
 
 def test_payment_message() -> None:
-    text = messages.payment(amount_label="€225", lessons_added=5, tutor_name="Анна", rate_unit="lesson")
+    text = messages.payment(
+        amount_label="€225",
+        lessons_added=5,
+        tutor_name="Анна",
+        rate_unit="lesson",
+        lang="ru",
+    )
     assert "Оплата получена" in text
     assert "€225" in text
     assert "+5" in text
     assert "Репетитор: Анна" in text
     assert "занятий" in text
-    hours = messages.payment(amount_label="€60", lessons_added=1.5, rate_unit="hour")
+    hours = messages.payment(amount_label="€60", lessons_added=1.5, rate_unit="hour", lang="ru")
     assert "+1.5 ч" in hours
 
 
@@ -57,6 +78,7 @@ def test_lesson_start_with_link() -> None:
         time_label="11:30",
         meeting_link="https://meet.example/x",
         tutor_name="Анна",
+        lang="ru",
     )
     assert "Скоро урок" in text
     assert "11:30" in text
@@ -65,7 +87,7 @@ def test_lesson_start_with_link() -> None:
 
 
 def test_homework_message() -> None:
-    text = messages.homework(text="упр. 4–6, стр. 18.", tutor_name="Анна")
+    text = messages.homework(text="упр. 4–6, стр. 18.", tutor_name="Анна", lang="ru")
     assert "Домашнее задание" in text
     assert "упр. 4–6" in text
     assert "Репетитор: Анна" in text
@@ -77,6 +99,7 @@ def test_section_screen() -> None:
         title="Оплата",
         body="Осталось: 2 занятий",
         tutor_name="Admin",
+        lang="ru",
     )
     assert "<b>💳 Оплата</b>" in text
     assert "Осталось: 2 занятий" in text
@@ -109,19 +132,31 @@ def test_vacation_notice_message() -> None:
 
 
 def test_welcome_linked_includes_tutor() -> None:
-    text = messages.welcome_linked(student_name="Ира", tutor_name="Анна")
-    assert "Ира" in text
-    assert "Анна" in text
+    text = messages.welcome_linked(student_name="Ira", tutor_name="Anna")
+    assert "Ira" in text
+    assert "Anna" in text
     assert "© Simple4U" in text
+    assert "Notifications are on" in text
 
 
 def test_lesson_moved_message() -> None:
     text = messages.lesson_moved(
+        new_time_label="Mon, 21.07, 15:00",
+        meeting_link="https://meet.example/x",
+        tutor_name="Anna",
+    )
+    assert "Lesson rescheduled" in text
+    assert "15:00" in text
+    assert "Anna" in text
+    assert "https://meet.example/x" in text
+
+
+def test_lesson_moved_message_russian() -> None:
+    text = messages.lesson_moved(
         new_time_label="пн, 21.07, 15:00",
         meeting_link="https://meet.example/x",
         tutor_name="Анна",
+        lang="ru",
     )
     assert "Урок перенесён" in text
-    assert "15:00" in text
     assert "Анна" in text
-    assert "https://meet.example/x" in text

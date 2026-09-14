@@ -56,7 +56,7 @@ class NotifyService:
 
     def _lang_of(self, student_id: str) -> str:
         binding = self.store.get_by_student(student_id)
-        return (binding.bot_lang if binding else None) or "de"
+        return (binding.bot_lang if binding else None) or "en"
 
     async def balance(
         self,

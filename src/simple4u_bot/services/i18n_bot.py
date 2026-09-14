@@ -128,6 +128,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "notify_balance_reason": "Причина: {reason}.",
         "notify_balance_package_title": "Баланс пакета",
         "notify_balance_package_body": "В пакете осталось {count} {unit}.",
+        "notify_balance_low_title": "Мало занятий в абонементе",
+        "notify_balance_low_body": "Осталось всего {count} {unit}. Пора пополнить пакет.",
         "balance_reason_no_show": "неявка на урок",
         "balance_reason_bonus": "бонусное занятие",
         "balance_reason_typo": "исправление",
@@ -217,6 +219,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "notify_balance_reason": "Reason: {reason}.",
         "notify_balance_package_title": "Package balance",
         "notify_balance_package_body": "{count} {unit} left in your package.",
+        "notify_balance_low_title": "Low package balance",
+        "notify_balance_low_body": "Only {count} {unit} left in your package. Time to top up.",
         "balance_reason_no_show": "no-show",
         "balance_reason_bonus": "bonus lesson",
         "balance_reason_typo": "correction",
@@ -306,6 +310,8 @@ TEXTS: dict[Lang, dict[str, str]] = {
         "notify_balance_reason": "Grund: {reason}.",
         "notify_balance_package_title": "Paket-Saldo",
         "notify_balance_package_body": "Noch {count} {unit} im Paket.",
+        "notify_balance_low_title": "Wenig Rest im Abo",
+        "notify_balance_low_body": "Nur noch {count} {unit} im Paket. Bitte aufladen.",
         "balance_reason_no_show": "Nichterscheinen",
         "balance_reason_bonus": "Bonus-Stunde",
         "balance_reason_typo": "Korrektur",
@@ -503,17 +509,17 @@ TEXTS: dict[Lang, dict[str, str]] = {
 
 
 def normalize_lang(raw: str | None) -> Lang:
-    value = (raw or "de").strip().lower()
+    value = (raw or "en").strip().lower()
     if value in _LEGACY_LANG:
         return _LEGACY_LANG[value]
     if value in LANG_META:
         return value  # type: ignore[return-value]
-    return "de"
+    return "en"
 
 
 def t(lang: str | None, key: str) -> str:
     code = normalize_lang(lang)
-    return TEXTS[code].get(key) or TEXTS["de"].get(key) or TEXTS["en"].get(key) or key
+    return TEXTS[code].get(key) or TEXTS["en"].get(key) or TEXTS["de"].get(key) or key
 
 
 def unit_word(lang: str | None, rate_unit: str | None, *, plural: bool = True) -> str:
