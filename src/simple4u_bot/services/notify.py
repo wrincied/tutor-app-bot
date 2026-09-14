@@ -130,12 +130,21 @@ class NotifyService:
         text: str,
         tutor_name: str | None = None,
     ) -> dict:
+        from simple4u_bot.services.i18n_bot import t
+        from simple4u_bot.services.translate import translate_text
+
+        lang = self._lang_of(student_id)
+        body = (text or "").strip()
+        if not body:
+            body = t(lang, "notify_homework_fallback")
+        else:
+            body = await translate_text(body, target_lang=lang)
         return await self._send(
             student_id,
             messages.homework(
-                text=text,
+                text=body,
                 tutor_name=self._tutor_of(student_id, tutor_name),
-                lang=self._lang_of(student_id),
+                lang=lang,
                 site_url=self._site_url,
             ),
         )

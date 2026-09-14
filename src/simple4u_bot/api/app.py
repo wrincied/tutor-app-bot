@@ -56,7 +56,7 @@ class LessonStartBody(BaseModel):
 
 class HomeworkBody(BaseModel):
     student_id: str
-    text: str = Field(min_length=1)
+    text: str = ""
     tutor_name: str | None = None
 
 
