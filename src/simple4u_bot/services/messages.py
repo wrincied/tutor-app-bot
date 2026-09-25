@@ -158,6 +158,22 @@ def balance(
         )
 
     if reason_key == "low_balance":
+        if left < 0:
+            debt = abs(left)
+            return compose_message(
+                icon="⚠️",
+                title=t(lang, "notify_balance_debt_title"),
+                body_lines=[
+                    t(lang, "notify_balance_debt_body").format(
+                        count=_fmt_units(debt),
+                        unit=unit,
+                    ),
+                    t(lang, "notify_balance_debt_hint"),
+                ],
+                tutor_name=tutor_name,
+                lang=lang,
+                site_url=site_url,
+            )
         if left <= 0:
             return compose_message(
                 icon="⚠️",
